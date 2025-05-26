@@ -1,0 +1,59 @@
+/* Custom styles for Resume AI Job plugin */
+
+/* Form styles */
+.resume-ai-job-login-form,
+.resume-ai-job-register-form {
+    @apply min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8;
+}
+
+/* Input focus styles */
+input:focus {
+    @apply ring-2 ring-primary-500 border-primary-500;
+}
+
+/* Button hover styles */
+button:hover {
+    @apply bg-primary-700;
+}
+
+/* Link styles */
+a {
+    @apply text-primary-600 hover:text-primary-500 transition-colors duration-200;
+}
+
+/* Form group styles */
+.form-group {
+    @apply space-y-1;
+}
+
+/* Error message styles */
+.error-message {
+    @apply text-red-600 text-sm mt-1;
+}
+
+/* Success message styles */
+.success-message {
+    @apply text-green-600 text-sm mt-1;
+}
+
+/* Loading spinner */
+.loading {
+    @apply animate-spin h-5 w-5 text-white;
+}
+
+/* Form validation styles */
+input:invalid {
+    @apply border-red-500;
+}
+
+input:valid {
+    @apply border-green-500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .resume-ai-job-login-form,
+    .resume-ai-job-register-form {
+        @apply px-4;
+    }
+} 

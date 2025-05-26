@@ -1,0 +1,70 @@
+<?php
+/**
+ * Plugin Name: Resume AI Job
+ * Plugin URI: https://yourwebsite.com/resume-ai-job
+ * Description: Adds AI-powered resume features to your WordPress site.
+ * Version: 1.0.0
+ * Author: Your Name
+ * Author URI: https://yourwebsite.com
+ * Text Domain: resume-ai-job
+ * Domain Path: /languages
+ * License: GPL2
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Define plugin constants
+define('RESUME_AI_JOB_VERSION', '1.0.0');
+define('RESUME_AI_JOB_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('RESUME_AI_JOB_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+// Autoloader for plugin classes
+spl_autoload_register(function ($class) {
+    // Project-specific namespace prefix
+    $prefix = 'ResumeAIJob\\';
+    
+    // Base directory for the namespace prefix
+    $base_dir = RESUME_AI_JOB_PLUGIN_DIR . 'includes/';
+    
+    // Check if the class uses the namespace prefix
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+    
+    // Get the relative class name
+    $relative_class = substr($class, $len);
+    
+    // Replace namespace separators with directory separators
+    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
+    
+    // If the file exists, require it
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// Initialize the plugin
+function resume_ai_job_init() {
+    // Initialize the main plugin class
+    $plugin = new ResumeAIJob\Core\Plugin();
+    $plugin->init();
+}
+
+// Hook into WordPress
+add_action('plugins_loaded', 'resume_ai_job_init');
+
+// Activation hook
+register_activation_hook(__FILE__, function() {
+    $activator = new ResumeAIJob\Core\Activator();
+    $activator->activate();
+});
+
+// Deactivation hook
+register_deactivation_hook(__FILE__, function() {
+    $deactivator = new ResumeAIJob\Core\Deactivator();
+    $deactivator->deactivate();
+}); 
