@@ -5,6 +5,38 @@ class Resume {
     private $ai_api_key;
     private $ai_api_url = 'https://api.openai.com/v1/chat/completions'; // Example AI API endpoint
     private $template_manager;
+    private $ai_ats_version = [
+        'name' => '',
+        'email' => '',
+        'phone' => '',
+        'address' => '',
+        'social_links' => [],
+        'summary' => '',
+        'experience' => [],
+        'education' => [],
+        'skills' => [],
+        'projects' => [],
+        'certifications' => [],
+        'languages' => [],
+        'interests' => [],
+        'awards' => []
+    ];
+    private $ai_human_version = [
+        'name' => '',
+        'email' => '',
+        'phone' => '',
+        'address' => '',
+        'social_links' => [],
+        'summary' => '',
+        'experience' => [],
+        'education' => [],
+        'skills' => [],
+        'projects' => [],
+        'certifications' => [],
+        'languages' => [],
+        'interests' => [],
+        'awards' => []
+    ];
 
     public function init() {
         // Add shortcode for resume upload form
@@ -297,19 +329,61 @@ class Resume {
             'human' => "Analyze this resume section and create a human-friendly version that maintains the original content but improves readability, formatting, and impact:\n\n"
         );
 
+        $systemPrompt = "You are a professional resume writer.";
+
         // Process each page separately
         foreach ($detailedElements['pages'] as $pageIndex => $page) {
             $pageText = $page['text'];
             
             // Process each version type
             foreach ($prompts as $type => $basePrompt) {
-                $prompt = $basePrompt . $pageText;
-                error_log("resume anyalyze: " . $basePrompt);
+                $prompt = $basePrompt . '<resume>' . $pageText . '</resume>';
                 
                 // Add timeout and retry logic
                 $maxRetries = 3;
                 $retryCount = 0;
                 $success = false;
+                $systemPrompt = $systemPrompt . $prompt;
+                $userPrompt = "return valid json following the format:
+                {
+                    'name': 'name',
+                    'email': 'email',
+                    'phone': 'phone',
+                    'address': 'address',
+                    'social_links': ['social_link1', 'social_link2', 'social_link3'],
+                    'summary': 'summary',
+                    'experience': [
+                        {
+                            'company': 'company',
+                            'title': 'title',
+                            'start_date': 'start_date',
+                            'end_date': 'end_date',
+                            'description': 'description'
+                        }
+                    ],
+                    'education': [
+                        {
+                            'school': 'school',
+                            'degree': 'degree',
+                            'start_date': 'start_date',
+                            'end_date': 'end_date',
+                            'description': 'description'
+                        }
+                    ],
+                    'skills': ['skill1', 'skill2', 'skill3'],
+                    'projects': [
+                        {
+                            'name': 'project_name',
+                            'description': 'project_description',
+                            'start_date': 'start_date',
+                            'end_date': 'end_date'
+                        }
+                    ],
+                    'certifications': ['certification1', 'certification2', 'certification3'],
+                    'languages': ['language1', 'language2', 'language3'],
+                    'interests': ['interest1', 'interest2', 'interest3'],
+                    'awards': ['award1', 'award2', 'award3']
+                }";
                 
                 while (!$success && $retryCount < $maxRetries) {
                     $response = wp_remote_post($this->ai_api_url, array(
@@ -320,13 +394,14 @@ class Resume {
                         'body' => json_encode(array(
                             'model' => 'gpt-4o',
                             'messages' => array(
-                                array('role' => 'system', 'content' => 'You are a professional resume writer.'),
-                                array('role' => 'user', 'content' => $prompt)
+                                array('role' => 'system', 'content' => $systemPrompt),
+                                array('role' => 'user', 'content' => $userPrompt)
                             ),
-                            'temperature' => 0.7
+                            'temperature' => 0.7,
+                            'json_mode' => true
                         )),
-                        'timeout' => 30, // Increase timeout to 30 seconds
-                        'sslverify' => false // Disable SSL verification if needed
+                        'timeout' => 30,
+                        'sslverify' => false
                     ));
 
                     if (is_wp_error($response)) {
@@ -336,7 +411,7 @@ class Resume {
                         if (strpos($error_message, 'timeout') !== false) {
                             $retryCount++;
                             if ($retryCount < $maxRetries) {
-                                sleep(2); // Wait 2 seconds before retrying
+                                sleep(2);
                                 continue;
                             }
                         }
@@ -348,9 +423,19 @@ class Resume {
                         if (!isset($versions[$type])) {
                             $versions[$type] = array();
                         }
-                        $versions[$type][$pageIndex] = $body['choices'][0]['message']['content'];
+                        $ai_version = json_decode($body['choices'][0]['message']['content'], true);
+                        
+                        // Merge new content with existing version
+                        if ($type == 'ats') {
+                            $this->ai_ats_version = $this->mergeResumeData($this->ai_ats_version, $ai_version);
+                            $versions[$type] = $this->ai_ats_version;
+                        } else if ($type == 'human') {
+                            $this->ai_human_version = $this->mergeResumeData($this->ai_human_version, $ai_version);
+                            $versions[$type] = $this->ai_human_version;
+                        }
+                        
                         $success = true;
-                        error_log("resume anyalyze: " . $body['choices'][0]['message']['content']);
+                        error_log("resume analyze: " . print_r($ai_version, true));
                     } else {
                         error_log('AI Response Error: ' . print_r($body, true));
                         $retryCount++;
@@ -373,6 +458,39 @@ class Resume {
         }
 
         return $versions;
+    }
+
+    /**
+     * Merge new resume data with existing data
+     */
+    private function mergeResumeData($existing, $new) {
+        $merged = $existing;
+        
+        // Merge basic fields if they're empty in existing
+        $basicFields = ['name', 'email', 'phone', 'address', 'summary'];
+        foreach ($basicFields as $field) {
+            if (empty($existing[$field]) && !empty($new[$field])) {
+                $merged[$field] = $new[$field];
+            }
+        }
+        
+        // Merge arrays by appending new items
+        $arrayFields = ['social_links', 'skills', 'certifications', 'languages', 'interests', 'awards'];
+        foreach ($arrayFields as $field) {
+            if (!empty($new[$field])) {
+                $merged[$field] = array_unique(array_merge($existing[$field], $new[$field]));
+            }
+        }
+        
+        // Merge complex arrays (experience, education, projects)
+        $complexFields = ['experience', 'education', 'projects'];
+        foreach ($complexFields as $field) {
+            if (!empty($new[$field])) {
+                $merged[$field] = array_merge($existing[$field], $new[$field]);
+            }
+        }
+        
+        return $merged;
     }
 
     private function save_ai_versions($versions, $user_id, $original_id) {
