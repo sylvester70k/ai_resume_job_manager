@@ -5,6 +5,10 @@ jQuery(document).ready(function($) {
         // Log to verify the script is running
         console.log('Form submitted');
         console.log('resumeAiJob object:', resumeAiJob);
+        if ($('#password').val() !== $('#repassword').val()) {
+            alert('Passwords do not match');
+            return;
+        }
         
         var formData = {
             action: 'resume_ai_register',

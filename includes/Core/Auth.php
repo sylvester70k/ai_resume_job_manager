@@ -37,7 +37,10 @@ class Auth {
      * Handle login AJAX request.
      */
     public function handle_login() {
-        check_ajax_referer('resume_ai_auth_nonce', 'nonce');
+        if (!check_ajax_referer('resume_ai_job_login_nonce', 'nonce', false)) {
+            error_log('Nonce verification failed');
+            wp_send_json_error('Security check failed');
+        }
 
         $email = sanitize_email($_POST['email']);
         $password = $_POST['password'];

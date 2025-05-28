@@ -28,7 +28,7 @@ if (is_user_logged_in()) {
 <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <form id="resume-ai-job-login" method="post" class="mt-8 space-y-6">
-            <?php wp_nonce_field('resume_ai_job_login', 'resume_ai_job_login_nonce'); ?>
+            <?php wp_nonce_field('resume_ai_job_login_nonce', 'resume_ai_job_login_nonce'); ?>
             
             <div class="space-y-4">
                 <div>

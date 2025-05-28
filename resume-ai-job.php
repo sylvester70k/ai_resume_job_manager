@@ -21,6 +21,20 @@ define('RESUME_AI_JOB_VERSION', '1.0.0');
 define('RESUME_AI_JOB_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RESUME_AI_JOB_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+// Load Composer's autoloader
+if (file_exists(RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php')) {
+    require_once RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php';
+} else {
+    add_action('admin_notices', function() {
+        ?>
+        <div class="notice notice-error">
+            <p><?php _e('Resume AI Job plugin requires Composer dependencies to be installed. Please run <code>composer install</code> in the plugin directory.', 'resume-ai-job'); ?></p>
+        </div>
+        <?php
+    });
+    return;
+}
+
 // Autoloader for plugin classes
 spl_autoload_register(function ($class) {
     // Project-specific namespace prefix

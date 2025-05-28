@@ -29,6 +29,13 @@ class Plugin {
      * @var \ResumeAIJob\Core\AssetManager
      */
     private $asset_manager;
+    
+    /**
+     * Resume instance.
+     *
+     * @var \ResumeAIJob\Core\Resume
+     */
+    private $resume;
 
     /**
      * Get plugin instance.
@@ -62,6 +69,10 @@ class Plugin {
         // Initialize asset manager
         $this->asset_manager = new AssetManager();
         $this->asset_manager->init();
+
+        // Initialize resume
+        $this->resume = new Resume();
+        $this->resume->init();
 
         // Initialize AJAX handlers
         $ajax = new \ResumeAIJob\Ajax\AjaxHandler();

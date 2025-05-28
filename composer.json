@@ -1,0 +1,16 @@
+{
+    "name": "resume-ai-job/resume-ai-job",
+    "description": "WordPress plugin for AI-powered resume management",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=7.0",
+        "smalot/pdfparser": "^2.5",
+        "phpoffice/phpword": "^1.1",
+        "tecnickcom/tcpdf": "^6.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "ResumeAIJob\\": "includes/"
+        }
+    }
+} 

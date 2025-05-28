@@ -1,267 +1,650 @@
 <?php
+/**
+ * Admin Page Template
+ * 
+ * @package ResumeAIJobPlugin
+ */
+
+// Exit if accessed directly
 if (!defined('ABSPATH')) {
     exit;
 }
-?>
-<div class="wrap">
-    <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-    <div class="resume-ai-job-admin-content">
-        <h2>Welcome to Resume AI Job</h2>
-        <p>This is your plugin management page. You can add your plugin settings and features here.</p>
 
-        <!-- User Management Section -->
-        <div class="user-management-section">
-            <h3>User Management</h3>
-            <button id="add-user-button" class="button button-primary">Add User</button>
+// Get all users with resume_user role
+$users = get_users(array('role__in' => array('resume_user')));
+
+// Get all resume posts
+$resume_posts = get_posts(array(
+    'post_type' => 'resume_post',
+    'posts_per_page' => -1,
+    'orderby' => 'date',
+    'order' => 'DESC'
+));
+
+// Get current tab
+$current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users';
+?>
+
+<style>
+.resume-ai-job-wrap {
+    margin: 20px;
+}
+
+.resume-ai-job-header {
+    margin-bottom: 20px;
+}
+
+.resume-ai-job-header h1 {
+    font-size: 23px;
+    font-weight: 400;
+    margin: 0;
+    padding: 9px 0 4px;
+    line-height: 1.3;
+}
+
+.resume-ai-job-tabs {
+    border-bottom: 1px solid #c3c4c7;
+    margin-bottom: 20px;
+}
+
+.resume-ai-job-tabs a {
+    display: inline-block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #646970;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.resume-ai-job-tabs a.active {
+    color: #2271b1;
+    border-bottom-color: #2271b1;
+}
+
+.resume-ai-job-tabs a:hover {
+    color: #2271b1;
+}
+
+/* User Management Styles */
+.resume-ai-job-users {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.resume-ai-job-users-header {
+    padding: 15px;
+    border-bottom: 1px solid #c3c4c7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resume-ai-job-users-header h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.resume-ai-job-users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.resume-ai-job-users-table th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #c3c4c7;
+    background: #f0f0f1;
+    font-weight: 600;
+}
+
+.resume-ai-job-users-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #c3c4c7;
+    vertical-align: middle;
+}
+
+.resume-ai-job-users-table tr:last-child td {
+    border-bottom: none;
+}
+
+.resume-ai-job-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.resume-ai-job-user-info {
+    display: flex;
+    align-items: center;
+}
+
+.resume-ai-job-user-name {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.resume-ai-job-user-username {
+    color: #646970;
+    font-size: 13px;
+}
+
+.resume-ai-job-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.resume-ai-job-badge-green {
+    background: #edfaef;
+    color: #1e7e34;
+}
+
+.resume-ai-job-action-link {
+    color: #2271b1;
+    text-decoration: none;
+    margin-right: 10px;
+}
+
+.resume-ai-job-action-link:hover {
+    color: #135e96;
+}
+
+.resume-ai-job-action-link.delete {
+    color: #d63638;
+}
+
+.resume-ai-job-action-link.delete:hover {
+    color: #b32d2e;
+}
+
+/* Resume Grid Styles */
+.resume-ai-job-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.resume-ai-job-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    padding: 15px;
+}
+
+.resume-ai-job-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.resume-ai-job-card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.resume-ai-job-card-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.resume-ai-job-card-badge.original {
+    background: #e6f3ff;
+    color: #2271b1;
+}
+
+.resume-ai-job-card-badge.ats {
+    background: #edfaef;
+    color: #1e7e34;
+}
+
+.resume-ai-job-card-badge.human {
+    background: #f6e7f5;
+    color: #8c1749;
+}
+
+.resume-ai-job-card-info {
+    margin-bottom: 15px;
+}
+
+.resume-ai-job-card-info p {
+    margin: 5px 0;
+    color: #646970;
+    font-size: 13px;
+}
+
+.resume-ai-job-card-info strong {
+    color: #1d2327;
+}
+
+.resume-ai-job-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Modal Styles */
+.resume-ai-job-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100000;
+}
+
+.resume-ai-job-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 20px;
+    border-radius: 3px;
+    min-width: 400px;
+    max-width: 90%;
+}
+
+.resume-ai-job-modal-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.resume-ai-job-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.resume-ai-job-form-group {
+    margin-bottom: 15px;
+}
+
+.resume-ai-job-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.resume-ai-job-form-group input {
+    width: 100%;
+    padding: 5px 8px;
+}
+
+.resume-ai-job-modal-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #c3c4c7;
+    text-align: right;
+}
+
+.resume-ai-job-modal-footer .button {
+    margin-left: 10px;
+}
+</style>
+
+<div class="resume-ai-job-wrap">
+    <div class="resume-ai-job-header">
+        <h1>Resume AI Job Management</h1>
+    </div>
+
+    <!-- Tabs -->
+    <nav class="resume-ai-job-tabs">
+        <a href="?page=resume-ai-job&tab=users" 
+           class="<?php echo $current_tab === 'users' ? 'active' : ''; ?>">
+            Users
+        </a>
+        <a href="?page=resume-ai-job&tab=resumes" 
+           class="<?php echo $current_tab === 'resumes' ? 'active' : ''; ?>">
+            Resumes
+        </a>
+    </nav>
+
+    <?php if ($current_tab === 'users'): ?>
+        <!-- Users Tab -->
+        <div class="resume-ai-job-users">
+            <div class="resume-ai-job-users-header">
+                <h2>User Management</h2>
+                <button type="button" 
+                        onclick="openAddUserModal()"
+                        class="button button-primary">
+                    <span class="dashicons dashicons-plus-alt" style="margin-top: 3px;"></span>
+                    Add User
+                </button>
+            </div>
+
+            <table class="resume-ai-job-users-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Resumes</th>
+                        <th>Last Active</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($users as $user): 
+                        $resume_count = count(get_posts(array(
+                            'post_type' => 'resume_post',
+                            'author' => $user->ID,
+                            'posts_per_page' => -1
+                        )));
+                        $last_active = get_user_meta($user->ID, 'last_active', true);
+                    ?>
+                        <tr>
+                            <td>
+                                <div class="resume-ai-job-user-info">
+                                    <?php echo get_avatar($user->ID, 40, '', '', array('class' => 'resume-ai-job-user-avatar')); ?>
+                                    <div>
+                                        <div class="resume-ai-job-user-name">
+                                            <?php echo esc_html($user->display_name); ?>
+                                        </div>
+                                        <div class="resume-ai-job-user-username">
+                                            <?php echo esc_html($user->user_login); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><?php echo esc_html($user->user_email); ?></td>
+                            <td>
+                                <span class="resume-ai-job-badge resume-ai-job-badge-green">
+                                    <?php echo $resume_count; ?> resume<?php echo $resume_count !== 1 ? 's' : ''; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php echo $last_active ? date('M j, Y', strtotime($last_active)) : 'Never'; ?>
+                            </td>
+                            <td>
+                                <a href="#" onclick="viewUserResumes(<?php echo esc_js($user->ID); ?>)" 
+                                   class="resume-ai-job-action-link">View Resumes</a>
+                                <a href="#" onclick="editUser(<?php echo esc_js($user->ID); ?>)" 
+                                   class="resume-ai-job-action-link">Edit</a>
+                                <a href="#" onclick="deleteUser(<?php echo esc_js($user->ID); ?>)" 
+                                   class="resume-ai-job-action-link delete">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>LinkedIn</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                global $wpdb;
-                $users = get_users(array('role__in' => array('resume_user', 'administrator')));
-                $custom_table = $wpdb->prefix . 'resume_ai_job_user_data';
-                
-                foreach ($users as $user) {
-                    $custom_data = $wpdb->get_row($wpdb->prepare(
-                        "SELECT * FROM $custom_table WHERE user_id = %d",
-                        $user->ID
-                    ));
-                    
-                    echo '<tr>';
-                    echo '<td>' . esc_html($user->ID) . '</td>';
-                    echo '<td>' . esc_html($user->first_name) . '</td>';
-                    echo '<td>' . esc_html($user->last_name) . '</td>';
-                    echo '<td>' . esc_html($user->user_email) . '</td>';
-                    echo '<td>' . esc_html(implode(', ', $user->roles)) . '</td>';
-                    echo '<td>' . esc_html($custom_data ? $custom_data->linkedin_url : '') . '</td>';
-                    echo '<td><a href="#" class="edit-user" data-id="' . esc_attr($user->ID) . '">Edit</a> | <a href="#" class="delete-user" data-id="' . esc_attr($user->ID) . '">Delete</a></td>';
-                    echo '</tr>';
-                }
-                ?>
-            </tbody>
-        </table>
+
+    <?php else: ?>
+        <!-- Resumes Tab -->
+        <div class="resume-ai-job-grid">
+            <?php foreach ($resume_posts as $post): 
+                $resume_file_id = get_post_meta($post->ID, '_resume_file_id', true);
+                $resume_file = get_attached_file($resume_file_id);
+                $resume_type = get_post_meta($resume_file_id, '_resume_type', true);
+                $user = get_user_by('id', $post->post_author);
+            ?>
+                <div class="resume-ai-job-card">
+                    <div class="resume-ai-job-card-header">
+                        <h3 class="resume-ai-job-card-title">
+                            <?php echo esc_html($post->post_title); ?>
+                        </h3>
+                        <span class="resume-ai-job-card-badge <?php echo $resume_type; ?>">
+                            <?php echo esc_html(ucfirst(str_replace('_', ' ', $resume_type))); ?>
+                        </span>
+                    </div>
+
+                    <div class="resume-ai-job-card-info">
+                        <p>
+                            <strong>Author:</strong>
+                            <?php echo esc_html($user->display_name); ?>
+                        </p>
+                        <p>
+                            <strong>Date:</strong>
+                            <?php echo get_the_date('F j, Y', $post->ID); ?>
+                        </p>
+                        <p>
+                            <strong>Status:</strong>
+                            <?php echo esc_html($post->post_status); ?>
+                        </p>
+                    </div>
+
+                    <div class="resume-ai-job-card-actions">
+                        <a href="<?php echo wp_get_attachment_url($resume_file_id); ?>" 
+                           target="_blank"
+                           class="button">
+                            <span class="dashicons dashicons-visibility" style="margin-top: 3px;"></span>
+                            View
+                        </a>
+                        
+                        <button type="button"
+                                class="button button-primary"
+                                onclick="downloadResume(<?php echo esc_js($resume_file_id); ?>)">
+                            <span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
+                            Download
+                        </button>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</div>
+
+<!-- Add User Modal -->
+<div id="add-user-modal" class="resume-ai-job-modal">
+    <div class="resume-ai-job-modal-content">
+        <div class="resume-ai-job-modal-header">
+            <h3>Add New User</h3>
+        </div>
+        <form id="add-user-form">
+            <?php wp_nonce_field('add_user_nonce', 'add_user_nonce'); ?>
+            <div class="resume-ai-job-form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" required>
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" required>
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="linkedin_url">LinkedIn URL</label>
+                <input type="url" id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/username">
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="resume-ai-job-modal-footer">
+                <button type="button" onclick="closeAddUserModal()" class="button">Cancel</button>
+                <button type="submit" class="button button-primary">Add User</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Edit User Dialog -->
-<div id="edit-user-dialog" style="display:none;">
-    <h3>Edit User</h3>
-    <form id="edit-user-form" class="edit-user-form">
-        <?php wp_nonce_field('resume_ai_job_nonce', 'resume_ai_job_nonce'); ?>
-        <input type="hidden" id="edit-user-id" name="user_id">
-        <label for="edit-first-name">First Name:</label>
-        <input type="text" id="edit-first-name" name="first_name" required class="form-control"><br>
-        <label for="edit-last-name">Last Name:</label>
-        <input type="text" id="edit-last-name" name="last_name" required class="form-control"><br>
-        <label for="edit-email">Email:</label>
-        <input type="email" id="edit-email" name="email" required class="form-control"><br>
-        <label for="edit-role">Role:</label>
-        <select id="edit-role" name="role" required class="form-control">
-            <option value="resume_user">Resume User</option>
-            <option value="administrator">Administrator</option>
-        </select><br>
-        <label for="edit-linkedin">LinkedIn URL:</label>
-        <input type="url" id="edit-linkedin" name="linkedin_url" class="form-control"><br>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-    </form>
+<!-- Edit User Modal -->
+<div id="edit-user-modal" class="resume-ai-job-modal">
+    <div class="resume-ai-job-modal-content">
+        <div class="resume-ai-job-modal-header">
+            <h3>Edit User</h3>
+        </div>
+        <form id="edit-user-form">
+            <?php wp_nonce_field('edit_user_nonce', 'edit_user_nonce'); ?>
+            <input type="hidden" id="edit_user_id" name="user_id">
+            <div class="resume-ai-job-form-group">
+                <label for="edit_first_name">First Name</label>
+                <input type="text" id="edit_first_name" name="first_name" required>
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="edit_last_name">Last Name</label>
+                <input type="text" id="edit_last_name" name="last_name" required>
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="edit_email">Email</label>
+                <input type="email" id="edit_email" name="email" required>
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="edit_linkedin_url">LinkedIn URL</label>
+                <input type="url" id="edit_linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/username">
+            </div>
+            <div class="resume-ai-job-form-group">
+                <label for="edit_password">New Password (leave blank to keep current)</label>
+                <input type="password" id="edit_password" name="password">
+            </div>
+            <div class="resume-ai-job-modal-footer">
+                <button type="button" onclick="closeEditUserModal()" class="button">Cancel</button>
+                <button type="submit" class="button button-primary">Update User</button>
+            </div>
+        </form>
+    </div>
 </div>
-
-<!-- Add User Dialog -->
-<div id="add-user-dialog" style="display:none;">
-    <h3>Add User</h3>
-    <form id="add-user-form" class="edit-user-form">
-        <?php wp_nonce_field('resume_ai_job_nonce', 'resume_ai_job_nonce'); ?>
-        <label for="add-first-name">First Name:</label>
-        <input type="text" id="add-first-name" name="first_name" required class="form-control"><br>
-        <label for="add-last-name">Last Name:</label>
-        <input type="text" id="add-last-name" name="last_name" required class="form-control"><br>
-        <label for="add-email">Email:</label>
-        <input type="email" id="add-email" name="email" required class="form-control"><br>
-        <label for="add-password">Password:</label>
-        <input type="password" id="add-password" name="password" required class="form-control"><br>
-        <label for="add-role">Role:</label>
-        <select id="add-role" name="role" required class="form-control">
-            <option value="resume_user">Resume User</option>
-            <option value="administrator">Administrator</option>
-        </select><br>
-        <label for="add-linkedin">LinkedIn URL:</label>
-        <input type="url" id="add-linkedin" name="linkedin_url" class="form-control"><br>
-        <button type="submit" class="btn btn-primary">Add User</button>
-    </form>
-</div>
-
-<style>
-    .edit-user-form {
-        padding: 20px;
-        background-color: #f9f9f9;
-        border-radius: 5px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 8px;
-        margin: 5px 0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-
-    .btn-primary {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    .btn-primary:hover {
-        background-color: #0056b3;
-    }
-
-    .user-management-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-</style>
 
 <script>
-jQuery(document).ready(function($) {
-    // Edit User Dialog
-    $('.edit-user').click(function(e) {
-        e.preventDefault();
-        var userId = $(this).data('id');
-        // Fetch user data and populate the dialog
-        $.ajax({
+// User Management Functions
+function openAddUserModal() {
+    document.getElementById('add-user-modal').style.display = 'block';
+}
+
+function closeAddUserModal() {
+    document.getElementById('add-user-modal').style.display = 'none';
+}
+
+function viewUserResumes(userId) {
+    window.location.href = `?page=resume-ai-job&tab=resumes&user=${userId}`;
+}
+
+function editUser(userId) {
+    // Get user data
+    jQuery.ajax({
+        url: ajaxurl,
+        type: 'POST',
+        data: {
+            action: 'get_user_data',
+            user_id: userId,
+            nonce: '<?php echo wp_create_nonce('get_user_data_nonce'); ?>'
+        },
+        success: function(response) {
+            if (response.success) {
+                // Populate form
+                document.getElementById('edit_user_id').value = userId;
+                document.getElementById('edit_first_name').value = response.data.first_name;
+                document.getElementById('edit_last_name').value = response.data.last_name;
+                document.getElementById('edit_email').value = response.data.email;
+                document.getElementById('edit_linkedin_url').value = response.data.linkedin_url;
+                document.getElementById('edit_password').value = '';
+                
+                // Show modal
+                document.getElementById('edit-user-modal').style.display = 'block';
+            } else {
+                alert('Failed to get user data');
+            }
+        }
+    });
+}
+
+function closeEditUserModal() {
+    document.getElementById('edit-user-modal').style.display = 'none';
+}
+
+function deleteUser(userId) {
+    if (confirm('Are you sure you want to delete this user? This will also delete all their resumes.')) {
+        jQuery.ajax({
             url: ajaxurl,
             type: 'POST',
             data: {
-                action: 'get_user_data',
+                action: 'delete_user',
                 user_id: userId,
-                nonce: $('#resume_ai_job_nonce').val()
+                nonce: '<?php echo wp_create_nonce('delete_user_nonce'); ?>'
             },
             success: function(response) {
-                $('#edit-user-id').val(response.user_id);
-                $('#edit-first-name').val(response.first_name);
-                $('#edit-last-name').val(response.last_name);
-                $('#edit-email').val(response.email);
-                $('#edit-role').val(response.role);
-                $('#edit-linkedin').val(response.linkedin_url);
-                $('#edit-resume').val(response.resume_url);
-                $('#edit-user-dialog').dialog('open');
-            }
-        });
-    });
-
-    // Delete User Confirmation
-    $('.delete-user').click(function(e) {
-        e.preventDefault();
-        var userId = $(this).data('id');
-        if (confirm('Are you sure you want to delete this user?')) {
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'delete_user',
-                    user_id: userId,
-                    nonce: $('#resume_ai_job_nonce').val()
-                },
-                success: function(response) {
-                    alert('User deleted successfully!');
+                if (response.success) {
                     location.reload();
+                } else {
+                    alert('Failed to delete user');
                 }
-            });
-        }
-    });
-
-    // Initialize Dialog
-    $('#edit-user-dialog').dialog({
-        autoOpen: false,
-        modal: true,
-        width: 400,
-        buttons: {
-            'Cancel': function() {
-                $(this).dialog('close');
-            }
-        }
-    });
-
-    // Handle Edit Form Submission
-    $('#edit-user-form').submit(function(e) {
-        e.preventDefault();
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'update_user',
-                user_id: $('#edit-user-id').val(),
-                first_name: $('#edit-first-name').val(),
-                last_name: $('#edit-last-name').val(),
-                email: $('#edit-email').val(),
-                role: $('#edit-role').val(),
-                linkedin_url: $('#edit-linkedin').val(),
-                nonce: $('#resume_ai_job_nonce').val()
-            },
-            success: function(response) {
-                alert('User updated successfully!');
-                $('#edit-user-dialog').dialog('close');
-                location.reload();
             }
         });
-    });
+    }
+}
 
-    // Add User Dialog
-    $('#add-user-button').click(function() {
-        $('#add-user-dialog').dialog('open');
+// Resume Management Functions
+function downloadResume(fileId) {
+    const downloadUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
+    
+    jQuery.ajax({
+        url: downloadUrl,
+        type: 'POST',
+        data: {
+            action: 'download_resume',
+            file_id: fileId,
+            nonce: '<?php echo wp_create_nonce('download_resume_nonce'); ?>'
+        },
+        success: function(response) {
+            if (response.success) {
+                window.location.href = response.data.url;
+            } else {
+                alert('Failed to download resume');
+            }
+        },
+        error: function() {
+            alert('An error occurred while downloading the resume');
+        }
     });
+}
 
-    // Initialize Add User Dialog
-    $('#add-user-dialog').dialog({
-        autoOpen: false,
-        modal: true,
-        width: 400,
-        buttons: {
-            'Cancel': function() {
-                $(this).dialog('close');
+// Handle Add User Form Submission
+jQuery('#add-user-form').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('action', 'add_user');
+    
+    jQuery.ajax({
+        url: ajaxurl,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Failed to add user');
             }
         }
     });
+});
 
-    // Handle Add User Form Submission
-    $('#add-user-form').submit(function(e) {
-        e.preventDefault();
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'add_user',
-                first_name: $('#add-first-name').val(),
-                last_name: $('#add-last-name').val(),
-                email: $('#add-email').val(),
-                password: $('#add-password').val(),
-                role: $('#add-role').val(),
-                linkedin_url: $('#add-linkedin').val(),
-                nonce: $('#resume_ai_job_nonce').val()
-            },
-            success: function(response) {
-                alert('User added successfully!');
-                $('#add-user-dialog').dialog('close');
+// Handle Edit User Form Submission
+jQuery('#edit-user-form').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('action', 'edit_user');
+    formData.append('nonce', '<?php echo wp_create_nonce('edit_user_nonce'); ?>');
+    
+    jQuery.ajax({
+        url: ajaxurl,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
                 location.reload();
+            } else {
+                alert('Failed to update user');
             }
-        });
+        }
     });
 });
 </script> 
