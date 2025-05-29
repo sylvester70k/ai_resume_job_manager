@@ -283,15 +283,15 @@ class Resume {
             
             $result = [
                 'metadata' => [
-                    'title' => $phpWord->getDocInfo()->getTitle(),
-                    'creator' => $phpWord->getDocInfo()->getCreator(),
-                    'company' => $phpWord->getDocInfo()->getCompany(),
-                    'description' => $phpWord->getDocInfo()->getDescription(),
-                    'category' => $phpWord->getDocInfo()->getCategory(),
-                    'keywords' => $phpWord->getDocInfo()->getKeywords(),
-                    'lastModifiedBy' => $phpWord->getDocInfo()->getLastModifiedBy(),
-                    'created' => $phpWord->getDocInfo()->getCreated(),
-                    'modified' => $phpWord->getDocInfo()->getModified()
+                    'title' => $phpWord->getDocInfo()->getTitle() ?: '',
+                    'creator' => $phpWord->getDocInfo()->getCreator() ?: '',
+                    'company' => $phpWord->getDocInfo()->getCompany() ?: '',
+                    'description' => $phpWord->getDocInfo()->getDescription() ?: '',
+                    'category' => $phpWord->getDocInfo()->getCategory() ?: '',
+                    'keywords' => $phpWord->getDocInfo()->getKeywords() ?: '',
+                    'lastModifiedBy' => $phpWord->getDocInfo()->getLastModifiedBy() ?: '',
+                    'created' => $phpWord->getDocInfo()->getCreated() ?: '',
+                    'modified' => $phpWord->getDocInfo()->getModified() ?: ''
                 ],
                 'pages' => [],
                 'images' => []
@@ -322,15 +322,25 @@ class Resume {
                             if ($textElement instanceof \PhpOffice\PhpWord\Element\Text) {
                                 $textContent .= $textElement->getText();
                                 if ($textElement->getFontStyle()) {
+                                    $fontStyle = $textElement->getFontStyle();
                                     $elementData['style'] = [
-                                        'name' => $textElement->getFontStyle()->getStyleName(),
-                                        'size' => $textElement->getFontStyle()->getSize(),
-                                        'bold' => $textElement->getFontStyle()->isBold(),
-                                        'italic' => $textElement->getFontStyle()->isItalic(),
-                                        'underline' => $textElement->getFontStyle()->getUnderline(),
-                                        'color' => $textElement->getFontStyle()->getColor()
+                                        'name' => $fontStyle->getName() ?: '',
+                                        'size' => $fontStyle->getSize() ?: 12,
+                                        'bold' => $fontStyle->isBold() ?: false,
+                                        'italic' => $fontStyle->isItalic() ?: false,
+                                        'underline' => $fontStyle->getUnderline() ?: '',
+                                        'color' => $fontStyle->getColor() ?: ''
                                     ];
                                 }
+                            } elseif ($textElement instanceof \PhpOffice\PhpWord\Element\Image) {
+                                // Handle images within text runs
+                                $result['images'][] = [
+                                    'type' => $textElement->getImageType() ?: '',
+                                    'width' => $textElement->getWidth() ?: 0,
+                                    'height' => $textElement->getHeight() ?: 0,
+                                    'page' => $pageIndex + 1,
+                                    'position' => $yPosition
+                                ];
                             }
                         }
                         $elementData['content'] = $textContent;
@@ -349,13 +359,14 @@ class Resume {
                             'y' => $yPosition
                         ];
                         if ($element->getFontStyle()) {
+                            $fontStyle = $element->getFontStyle();
                             $elementData['style'] = [
-                                'name' => $element->getFontStyle()->getStyleName(),
-                                'size' => $element->getFontStyle()->getSize(),
-                                'bold' => $element->getFontStyle()->isBold(),
-                                'italic' => $element->getFontStyle()->isItalic(),
-                                'underline' => $element->getFontStyle()->getUnderline(),
-                                'color' => $element->getFontStyle()->getColor()
+                                'name' => $fontStyle->getName() ?: '',
+                                'size' => $fontStyle->getSize() ?: 12,
+                                'bold' => $fontStyle->isBold() ?: false,
+                                'italic' => $fontStyle->isItalic() ?: false,
+                                'underline' => $fontStyle->getUnderline() ?: '',
+                                'color' => $fontStyle->getColor() ?: ''
                             ];
                         }
                         $yPosition += 20;
@@ -380,6 +391,15 @@ class Resume {
                                         foreach ($cellElement->getElements() as $textElement) {
                                             if ($textElement instanceof \PhpOffice\PhpWord\Element\Text) {
                                                 $cellContent .= $textElement->getText() . ' ';
+                                            } elseif ($textElement instanceof \PhpOffice\PhpWord\Element\Image) {
+                                                // Handle images within table cells
+                                                $result['images'][] = [
+                                                    'type' => $textElement->getImageType() ?: '',
+                                                    'width' => $textElement->getWidth() ?: 0,
+                                                    'height' => $textElement->getHeight() ?: 0,
+                                                    'page' => $pageIndex + 1,
+                                                    'position' => $yPosition
+                                                ];
                                             }
                                         }
                                     } elseif ($cellElement instanceof \PhpOffice\PhpWord\Element\Text) {
@@ -398,22 +418,23 @@ class Resume {
                         ];
                         $yPosition += 20 * count($element->getRows());
                     }
+                    elseif ($element instanceof \PhpOffice\PhpWord\Element\Image) {
+                        // Handle standalone images
+                        $result['images'][] = [
+                            'type' => $element->getImageType() ?: '',
+                            'width' => $element->getWidth() ?: 0,
+                            'height' => $element->getHeight() ?: 0,
+                            'page' => $pageIndex + 1,
+                            'position' => $yPosition
+                        ];
+                        $yPosition += ($element->getHeight() ?: 0) + 20; // Add image height plus some padding
+                    }
 
                     $pageData['elements'][] = $elementData;
                 }
 
                 $result['pages'][] = $pageData;
                 $pageIndex++;
-            }
-
-            // Extract images
-            $images = $phpWord->getImages();
-            foreach ($images as $image) {
-                $result['images'][] = [
-                    'type' => $image->getImageType(),
-                    'width' => $image->getWidth(),
-                    'height' => $image->getHeight()
-                ];
             }
 
             if (empty($result['pages'])) {
@@ -427,27 +448,34 @@ class Resume {
     }
 
     private function extract_text_from_doc($file_path) {
-        // For old DOC files, we'll need to convert them to DOCX first
         try {
             // Check if the PhpWord library is available
             if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
                 return new \WP_Error('missing_library', 'PhpWord library is not installed. Please install phpoffice/phpword via Composer.');
             }
 
-            // Convert DOC to DOCX using PhpWord
-            $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
-            
-            // Create a temporary DOCX file
-            $temp_docx = wp_upload_dir()['path'] . '/temp_' . time() . '.docx';
-            $phpWord->save($temp_docx);
-            
-            // Extract text from the converted DOCX
-            $text = $this->extract_text_from_docx($temp_docx);
-            
-            // Clean up temporary file
-            @unlink($temp_docx);
-            
-            return $text;
+            // For old DOC files, we'll need to convert them to DOCX first
+            try {
+                // Load the DOC file
+                $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
+                
+                // Create a temporary DOCX file
+                $temp_docx = wp_upload_dir()['path'] . '/temp_' . time() . '.docx';
+                
+                // Save as DOCX
+                $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+                $objWriter->save($temp_docx);
+                
+                // Extract text from the converted DOCX
+                $result = $this->extract_text_from_docx($temp_docx);
+                
+                // Clean up temporary file
+                @unlink($temp_docx);
+                
+                return $result;
+            } catch (\Exception $e) {
+                return new \WP_Error('doc_error', 'Error converting DOC to DOCX: ' . $e->getMessage());
+            }
         } catch (\Exception $e) {
             return new \WP_Error('doc_error', 'Error processing DOC: ' . $e->getMessage());
         }
