@@ -27,6 +27,13 @@ $ats_resume = $resume_data ? get_post($resume_data->ats_resume_id) : null;
 $human_resume = $resume_data ? get_post($resume_data->human_resume_id) : null;
 $published_resume = $resume_data ? get_post($resume_data->published_resume_id) : null;
 
+echo "ATS Resume: ";
+print_r($ats_resume);
+echo "\nOriginal Resume: ";
+print_r($original_resume);
+echo "\nHuman Resume: ";
+print_r($human_resume);
+
 // Function to check if a resume is published
 function is_resume_published($resume, $published_resume) {
     return $resume && $published_resume && $resume->ID === $published_resume->ID;
@@ -67,10 +74,13 @@ function get_resume_url($resume) {
                     'resume' => $human_resume,
                 ],
             ];
+            print_r($resumes);
             foreach ($resumes as $item):
                 $resume = $item['resume'];
                 $resume_url = get_resume_url($resume);
                 $is_published = is_resume_published($resume, $published_resume);
+                echo "Resume URL: ";
+                print_r($resume_url);
             ?>
             <div class="w-full flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-transform hover:scale-[1.03] animate-fade-in">
                 <div class="flex-1 flex flex-col p-6">
