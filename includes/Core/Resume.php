@@ -499,12 +499,16 @@ class Resume {
         $version_ids = array();
         
         foreach ($versions as $type => $content) {
+            error_log('Processing version type: ' . $type);
+            error_log('Content: ' . print_r($content, true));
+            
             // Clean and deduplicate content
             $content = $this->clean_resume_content($content);
             
             // Get template type based on original file
             $original_file = get_attached_file($original_id);
             $file_extension = pathinfo($original_file, PATHINFO_EXTENSION);
+            error_log('File extension: ' . $file_extension);
             
             // Apply template - use 'html' type and 'default' template
             $document = $this->template_manager->apply_template('html', 'default', $content);
@@ -517,6 +521,7 @@ class Resume {
             $upload_dir = wp_upload_dir();
             $timestamp = date('Ymd_His');
             $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
+            error_log('Saving file to: ' . $file_path);
             
             try {
                 // Save document

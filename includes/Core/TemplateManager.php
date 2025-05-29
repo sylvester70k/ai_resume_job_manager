@@ -7,8 +7,9 @@ class TemplateManager {
     private $twig;
 
     public function __construct() {
-        // Use plugin's templates directory
+        // Use plugin's templates directory with absolute path
         $this->template_dir = RESUME_AI_JOB_PLUGIN_DIR . 'templates/';
+        error_log('Template directory: ' . $this->template_dir);
         
         // Create cache directory in WordPress uploads
         $upload_dir = wp_upload_dir();
@@ -28,21 +29,27 @@ class TemplateManager {
         $this->twig = new \Twig\Environment($loader, [
             'cache' => $cache_dir,
             'auto_reload' => true,
-            'debug' => WP_DEBUG
+            'debug' => true
         ]);
     }
 
     private function load_templates() {
         // Load HTML templates
         $html_dir = $this->template_dir . 'html/';
+        error_log('Loading templates from: ' . $html_dir);
+        
         if (is_dir($html_dir)) {
             $this->templates['html'] = $this->scan_templates($html_dir);
+            error_log('Loaded templates: ' . print_r($this->templates['html'], true));
+        } else {
+            error_log('HTML template directory not found: ' . $html_dir);
         }
     }
 
     private function scan_templates($dir) {
         $templates = [];
         $files = glob($dir . '*.{html,twig}', GLOB_BRACE);
+        error_log('Found template files: ' . print_r($files, true));
         
         foreach ($files as $file) {
             $filename = basename($file);
@@ -79,6 +86,9 @@ class TemplateManager {
     }
 
     public function get_template($type, $name) {
+        error_log('Getting template: ' . $type . '/' . $name);
+        error_log('Available templates: ' . print_r($this->templates, true));
+        
         if (isset($this->templates[$type][$name])) {
             return $this->templates[$type][$name];
         }
@@ -93,7 +103,10 @@ class TemplateManager {
 
         try {
             // Render the template with Twig
-            $html = $this->twig->render(basename($template['template']), [
+            $template_file = basename($template['template']);
+            error_log('Rendering template file: ' . $template_file);
+            
+            $html = $this->twig->render($template_file, [
                 'content' => $content,
                 'settings' => $template['settings'] ?? []
             ]);
@@ -105,6 +118,7 @@ class TemplateManager {
                 return $this->convert_to_docx($html, $template);
             }
         } catch (\Exception $e) {
+            error_log('Template error: ' . $e->getMessage());
             return new \WP_Error('template_error', $e->getMessage());
         }
     }
