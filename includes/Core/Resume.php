@@ -398,7 +398,9 @@ class Resume {
                                 array('role' => 'user', 'content' => $userPrompt)
                             ),
                             'temperature' => 0.7,
-                            'json_mode' => true
+                            'response_format' => array(
+                                'type' => 'json_object'
+                            )
                         )),
                         'timeout' => 30,
                         'sslverify' => false
