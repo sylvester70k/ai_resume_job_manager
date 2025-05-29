@@ -504,10 +504,10 @@ class Resume {
             
             // Get template type based on original file
             $original_file = get_attached_file($original_id);
-            $template_type = pathinfo($original_file, PATHINFO_EXTENSION);
+            $file_extension = pathinfo($original_file, PATHINFO_EXTENSION);
             
-            // Apply template
-            $document = $this->template_manager->apply_template($template_type, 'default', $content);
+            // Apply template - use 'html' type and 'default' template
+            $document = $this->template_manager->apply_template('html', 'default', $content);
             if (is_wp_error($document)) {
                 error_log('Template Error for ' . $type . ': ' . $document->get_error_message());
                 continue;
@@ -516,11 +516,11 @@ class Resume {
             // Generate file path with better naming convention
             $upload_dir = wp_upload_dir();
             $timestamp = date('Ymd_His');
-            $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $template_type;
+            $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
             
             try {
                 // Save document
-                if ($template_type === 'pdf') {
+                if ($file_extension === 'pdf') {
                     $document->Output($file_path, 'F');
                 } else {
                     $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'Word2007');
