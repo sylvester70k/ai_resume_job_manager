@@ -99,6 +99,9 @@ function resume_ai_job_activate() {
     if (!file_exists($cache_dir)) {
         wp_mkdir_p($cache_dir);
     }
+
+    $activator = new ResumeAIJob\Core\Activator();
+    $activator->activate();
 }
 
 // Deactivation hook
