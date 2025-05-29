@@ -691,86 +691,45 @@ class Resume {
             
             foreach ($versions as $type => $content) {
                 error_log('Processing version type: ' . $type);
-                error_log('Content structure: ' . print_r(array_keys($content), true));
                 
                 // Clean and deduplicate content
                 $content = $this->clean_resume_content($content);
-                error_log('Content cleaned successfully');
                 
                 // Get template type based on original file
                 $original_file = get_attached_file($original_id);
                 if (!$original_file) {
-                    error_log('Error: Could not get original file path for attachment ID: ' . $original_id);
                     throw new \Exception('Could not retrieve original file path');
                 }
                 
                 $file_extension = pathinfo($original_file, PATHINFO_EXTENSION);
-                error_log('File extension: ' . $file_extension);
                 
                 // Apply template
-                error_log('Attempting to apply template for type: ' . $type);
-                error_log('Template manager class: ' . get_class($this->template_manager));
-                error_log('Template manager methods: ' . print_r(get_class_methods($this->template_manager), true));
-                
-                try {
-                    $document = $this->template_manager->apply_template('html', 'default', $content);
-                    error_log('Template application result type: ' . gettype($document));
-                    
-                    if (is_wp_error($document)) {
-                        error_log('Template Error for ' . $type . ': ' . $document->get_error_message());
-                        throw new \Exception('Template application failed: ' . $document->get_error_message());
-                    }
-                    
-                    if (!$document) {
-                        error_log('Template application returned null or false');
-                        throw new \Exception('Template application returned no document');
-                    }
-                    
-                    error_log('Template applied successfully');
-                } catch (\Exception $e) {
-                    error_log('Template application exception: ' . $e->getMessage());
-                    error_log('Template application stack trace: ' . $e->getTraceAsString());
-                    throw $e;
+                $document = $this->template_manager->apply_template('html', 'default', $content);
+                if (is_wp_error($document)) {
+                    throw new \Exception('Template application failed: ' . $document->get_error_message());
                 }
                 
-                // Generate file path with better naming convention
+                // Generate file path
                 $upload_dir = wp_upload_dir();
-                if (!isset($upload_dir['path']) || !is_writable($upload_dir['path'])) {
-                    error_log('Error: Upload directory is not writable or does not exist: ' . print_r($upload_dir, true));
-                    throw new \Exception('Upload directory is not writable');
-                }
-                
                 $timestamp = date('Ymd_His');
                 $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
-                error_log('Saving file to: ' . $file_path);
                 
                 try {
-                    // Save document
                     if ($file_extension === 'pdf') {
-                        error_log('Attempting to save PDF document');
-                        // Convert HTML to PDF using template manager
                         $pdf = $this->template_manager->convert_to_pdf($document, $this->template_manager->get_template('html', 'default'));
                         if (!$pdf || !method_exists($pdf, 'Output')) {
-                            error_log('Error: Failed to convert HTML to PDF');
                             throw new \Exception('Failed to convert HTML to PDF');
                         }
                         $pdf->Output($file_path, 'F');
-                        error_log('PDF document saved successfully');
                     } else if ($file_extension === 'html') {
-                        error_log('Attempting to save HTML document');
                         if (!is_string($document)) {
-                            error_log('Error: Document is not a string');
                             throw new \Exception('Invalid document format for HTML generation');
                         }
                         if (file_put_contents($file_path, $document) === false) {
-                            error_log('Error: Failed to write HTML file');
                             throw new \Exception('Failed to write HTML file');
                         }
-                        error_log('HTML document saved successfully');
                     } else {
-                        error_log('Attempting to save Word document');
                         if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
-                            error_log('Error: PhpWord library not found');
                             throw new \Exception('PhpWord library is not installed');
                         }
 
@@ -788,7 +747,7 @@ class Resume {
                             ->setCreated(time())
                             ->setModified(time());
 
-                        // Add a section
+                        // Add a section with margins
                         $section = $phpWord->addSection([
                             'marginLeft' => 600,
                             'marginRight' => 600,
@@ -799,31 +758,177 @@ class Resume {
                         // Set default font
                         $phpWord->setDefaultFontName('Helvetica');
                         $phpWord->setDefaultFontSize(12);
+
+                        // Add name
+                        $section->addText($content['name'], [
+                            'bold' => true,
+                            'size' => 24,
+                            'alignment' => 'center'
+                        ]);
+                        $section->addTextBreak(1);
+
+                        // Add contact info
+                        $contactInfo = [];
+                        if (!empty($content['email'])) $contactInfo[] = $content['email'];
+                        if (!empty($content['phone'])) $contactInfo[] = $content['phone'];
+                        if (!empty($content['address'])) $contactInfo[] = $content['address'];
                         
-                        // Convert HTML to Word document
-                        $dom = new \DOMDocument();
-                        @$dom->loadHTML(mb_convert_encoding($document, 'HTML-ENTITIES', 'UTF-8'));
-                        
-                        // Process each element
-                        $this->processHtmlElement($dom->documentElement, $section);
+                        if (!empty($contactInfo)) {
+                            $section->addText(implode(' | ', $contactInfo), [
+                                'alignment' => 'center'
+                            ]);
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add social links
+                        if (!empty($content['social_links'])) {
+                            $section->addText(implode(' | ', $content['social_links']), [
+                                'alignment' => 'center'
+                            ]);
+                            $section->addTextBreak(1);
+                        }
+
+                        $section->addTextBreak(1);
+
+                        // Add summary
+                        if (!empty($content['summary'])) {
+                            $section->addText('Professional Summary', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText($content['summary']);
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add experience
+                        if (!empty($content['experience'])) {
+                            $section->addText('Experience', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+
+                            foreach ($content['experience'] as $exp) {
+                                $section->addText($exp['title'] . ' at ' . $exp['company'], ['bold' => true]);
+                                $section->addText($exp['start_date'] . ' - ' . $exp['end_date'], ['italic' => true]);
+                                $section->addText($exp['description']);
+                                $section->addTextBreak(1);
+                            }
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add education
+                        if (!empty($content['education'])) {
+                            $section->addText('Education', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+
+                            foreach ($content['education'] as $edu) {
+                                $section->addText($edu['degree'] . ' at ' . $edu['school'], ['bold' => true]);
+                                $section->addText($edu['start_date'] . ' - ' . $edu['end_date'], ['italic' => true]);
+                                if (!empty($edu['description'])) {
+                                    $section->addText($edu['description']);
+                                }
+                                $section->addTextBreak(1);
+                            }
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add skills
+                        if (!empty($content['skills'])) {
+                            $section->addText('Skills', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText(implode(' | ', $content['skills']));
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add projects
+                        if (!empty($content['projects'])) {
+                            $section->addText('Projects', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+
+                            foreach ($content['projects'] as $proj) {
+                                $section->addText($proj['name'], ['bold' => true]);
+                                $section->addText($proj['start_date'] . ' - ' . $proj['end_date'], ['italic' => true]);
+                                $section->addText($proj['description']);
+                                $section->addTextBreak(1);
+                            }
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add certifications
+                        if (!empty($content['certifications'])) {
+                            $section->addText('Certifications', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            foreach ($content['certifications'] as $cert) {
+                                $section->addText('• ' . $cert);
+                            }
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add languages
+                        if (!empty($content['languages'])) {
+                            $section->addText('Languages', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText(implode(' | ', $content['languages']));
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add interests
+                        if (!empty($content['interests'])) {
+                            $section->addText('Interests', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText(implode(' | ', $content['interests']));
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add awards
+                        if (!empty($content['awards'])) {
+                            $section->addText('Awards', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            foreach ($content['awards'] as $award) {
+                                $section->addText('• ' . $award);
+                            }
+                        }
                         
                         // Save the document
                         $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
                         $objWriter->save($file_path);
-                        error_log('Word document saved successfully');
-                    }
-                    
-                    // Verify file was created
-                    if (!file_exists($file_path)) {
-                        error_log('Error: File was not created at path: ' . $file_path);
-                        throw new \Exception('Failed to create output file');
                     }
                     
                     // Create attachment
-                    error_log('Creating attachment for file: ' . $file_path);
                     $attachment_id = $this->create_resume_attachment($file_path, $user_id);
                     if (is_wp_error($attachment_id)) {
-                        error_log('Failed to create attachment: ' . $attachment_id->get_error_message());
                         throw new \Exception('Failed to create attachment: ' . $attachment_id->get_error_message());
                     }
                     
@@ -831,201 +936,17 @@ class Resume {
                     update_post_meta($attachment_id, '_original_resume_id', $original_id);
                     $version_ids[$type] = $attachment_id;
                     
-                    error_log('Successfully saved ' . $type . ' version with ID: ' . $attachment_id);
-                    
                 } catch (\Exception $e) {
                     error_log('Error saving ' . $type . ' version: ' . $e->getMessage());
-                    error_log('Stack trace: ' . $e->getTraceAsString());
                     throw $e;
                 }
-            }
-
-            if (empty($version_ids)) {
-                error_log('No versions were successfully created');
-                throw new \Exception('Failed to create any resume versions');
-            } else {
-                error_log('Created versions: ' . print_r($version_ids, true));
             }
 
             return $version_ids;
             
         } catch (\Exception $e) {
             error_log('Critical error in save_ai_versions: ' . $e->getMessage());
-            error_log('Stack trace: ' . $e->getTraceAsString());
             throw $e;
-        }
-    }
-
-    /**
-     * Process HTML element and convert it to Word document elements
-     */
-    private function processHtmlElement($element, $section) {
-        if (!$element) return;
-
-        // Handle different node types
-        if ($element instanceof \DOMText) {
-            // Handle text nodes
-            if (trim($element->textContent) !== '') {
-                $section->addText($element->textContent);
-            }
-            return;
-        }
-
-        if ($element instanceof \DOMElement) {
-            // Get element style
-            $style = [];
-            if ($element->hasAttribute('style')) {
-                $styleString = $element->getAttribute('style');
-                $styles = explode(';', $styleString);
-                foreach ($styles as $styleItem) {
-                    $parts = explode(':', $styleItem);
-                    if (count($parts) === 2) {
-                        $style[trim($parts[0])] = trim($parts[1]);
-                    }
-                }
-            }
-
-            // Get class for styling
-            $classes = $element->hasAttribute('class') ? explode(' ', $element->getAttribute('class')) : [];
-
-            // Process different element types
-            switch (strtolower($element->nodeName)) {
-                case 'body':
-                    // Set default font and size for the document
-                    $section->setStyle([
-                        'font' => 'helvetica',
-                        'size' => 12,
-                        'lineHeight' => 1.6
-                    ]);
-                    // Process children
-                    foreach ($element->childNodes as $child) {
-                        $this->processHtmlElement($child, $section);
-                    }
-                    break;
-
-                case 'div':
-                    if (in_array('header', $classes)) {
-                        $section->addTextBreak(1);
-                        // Process header content
-                        foreach ($element->childNodes as $child) {
-                            $this->processHtmlElement($child, $section);
-                        }
-                        $section->addTextBreak(1);
-                    } elseif (in_array('section', $classes)) {
-                        $section->addTextBreak(1);
-                        // Process section content
-                        foreach ($element->childNodes as $child) {
-                            $this->processHtmlElement($child, $section);
-                        }
-                        $section->addTextBreak(1);
-                    } else {
-                        // Process other divs
-                        foreach ($element->childNodes as $child) {
-                            $this->processHtmlElement($child, $section);
-                        }
-                    }
-                    break;
-
-                case 'h1':
-                case 'h2':
-                case 'h3':
-                case 'h4':
-                case 'h5':
-                case 'h6':
-                    $text = $element->textContent;
-                    if (in_array('section-title', $classes)) {
-                        $section->addText($text, [
-                            'bold' => true,
-                            'size' => 16,
-                            'underline' => 'single'
-                        ]);
-                    } else {
-                        $section->addText($text, [
-                            'bold' => true,
-                            'size' => 16
-                        ]);
-                    }
-                    break;
-
-                case 'p':
-                    if (in_array('name', $classes)) {
-                        $section->addText($element->textContent, [
-                            'bold' => true,
-                            'size' => 24,
-                            'alignment' => 'center'
-                        ]);
-                    } elseif (in_array('contact-info', $classes)) {
-                        $section->addText($element->textContent, [
-                            'alignment' => 'center'
-                        ]);
-                    } else {
-                        $section->addText($element->textContent, [
-                            'size' => 12
-                        ]);
-                    }
-                    break;
-
-                case 'ul':
-                case 'ol':
-                    if (in_array('skills-list', $classes)) {
-                        // Handle skills list differently
-                        $text = '';
-                        foreach ($element->childNodes as $li) {
-                            if ($li instanceof \DOMElement && $li->nodeName === 'li') {
-                                $text .= $li->textContent . ' | ';
-                            }
-                        }
-                        $section->addText(trim($text, ' | '), ['size' => 12]);
-                    } else {
-                        foreach ($element->childNodes as $li) {
-                            if ($li instanceof \DOMElement && $li->nodeName === 'li') {
-                                $text = $li->textContent;
-                                $section->addListItem($text, 0);
-                            }
-                        }
-                    }
-                    break;
-
-                case 'table':
-                    $table = $section->addTable([
-                        'borderSize' => 6,
-                        'borderColor' => '999999',
-                        'cellMargin' => 80
-                    ]);
-                    foreach ($element->childNodes as $tr) {
-                        if ($tr instanceof \DOMElement && $tr->nodeName === 'tr') {
-                            $row = $table->addRow();
-                            foreach ($tr->childNodes as $td) {
-                                if ($td instanceof \DOMElement && ($td->nodeName === 'td' || $td->nodeName === 'th')) {
-                                    $cell = $row->addCell();
-                                    $cell->addText($td->textContent);
-                                }
-                            }
-                        }
-                    }
-                    break;
-
-                case 'br':
-                    $section->addTextBreak();
-                    break;
-
-                case 'span':
-                    if (in_array('item-header', $classes)) {
-                        $section->addText($element->textContent, ['bold' => true]);
-                    } elseif (in_array('item-date', $classes)) {
-                        $section->addText($element->textContent, ['italic' => true]);
-                    } else {
-                        $section->addText($element->textContent);
-                    }
-                    break;
-
-                default:
-                    // For unknown elements, just process their children
-                    foreach ($element->childNodes as $child) {
-                        $this->processHtmlElement($child, $section);
-                    }
-                    break;
-            }
         }
     }
 
