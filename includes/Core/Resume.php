@@ -599,13 +599,13 @@ class Resume {
                     // Save document
                     if ($file_extension === 'pdf') {
                         error_log('Attempting to save PDF document');
-                        if (!method_exists($document, 'Output')) {
-                            error_log('Error: Document object does not have Output method');
-                            error_log('Document object class: ' . get_class($document));
-                            error_log('Document object methods: ' . print_r(get_class_methods($document), true));
-                            throw new \Exception('Invalid document object for PDF generation');
+                        // Convert HTML to PDF using template manager
+                        $pdf = $this->template_manager->convert_to_pdf($document, $this->template_manager->get_template('html', 'default'));
+                        if (!$pdf || !method_exists($pdf, 'Output')) {
+                            error_log('Error: Failed to convert HTML to PDF');
+                            throw new \Exception('Failed to convert HTML to PDF');
                         }
-                        $document->Output($file_path, 'F');
+                        $pdf->Output($file_path, 'F');
                         error_log('PDF document saved successfully');
                     } else if ($file_extension === 'html') {
                         error_log('Attempting to save HTML document');

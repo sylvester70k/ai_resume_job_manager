@@ -134,7 +134,7 @@ class TemplateManager {
         }
     }
 
-    private function convert_to_pdf($html, $template) {
+    public function convert_to_pdf($html, $template) {
         require_once RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php';
         
         // Create new PDF instance
