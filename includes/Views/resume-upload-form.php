@@ -203,39 +203,28 @@ jQuery(document).ready(function($) {
     form.on('submit', function(e) {
         e.preventDefault();
         
-        const formData = new FormData(this);
+        var formData = new FormData(this);
+        formData.append('action', 'resume_upload');
+        formData.append('resume_upload_nonce', resume_ai_job.nonce);
         
-        // Show loading state
-        submitButton.prop('disabled', true);
-        loadingSpinner.removeClass('hidden');
-        uploadError.addClass('hidden');
-        uploadSuccess.addClass('hidden');
-
         $.ajax({
             url: resume_ai_job.ajax_url,
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
-            beforeSend: function() {
-                formData.append('action', 'resume_upload');
-                formData.append('resume_upload_nonce', $('#resume_upload_nonce').val());
-            },
             success: function(response) {
                 if (response.success) {
-                    showSuccess('Resume uploaded successfully!');
-                    form[0].reset();
-                    filePreview.addClass('hidden');
+                    alert('Resume uploaded and processed successfully!');
+                    if (response.data.redirect_url) {
+                        window.location.href = response.data.redirect_url;
+                    }
                 } else {
-                    showError(response.data.message || 'An error occurred while uploading your resume.');
+                    alert('Error: ' + response.data.message);
                 }
             },
             error: function() {
-                showError('An error occurred while uploading your resume. Please try again.');
-            },
-            complete: function() {
-                submitButton.prop('disabled', false);
-                loadingSpinner.addClass('hidden');
+                alert('An error occurred while uploading the resume.');
             }
         });
     });

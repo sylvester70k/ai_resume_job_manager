@@ -66,6 +66,17 @@ function resume_ai_job_init() {
     // Initialize the main plugin class
     $plugin = new ResumeAIJob\Core\Plugin();
     $plugin->init();
+    
+    // Register settings
+    register_setting('resume_ai_job_options', 'resume_ai_job_versions_page');
+    
+    // Add settings section
+    add_settings_section(
+        'resume_ai_job_main_section',
+        'Main Settings',
+        null,
+        'resume_ai_job_options'
+    );
 }
 
 // Hook into WordPress

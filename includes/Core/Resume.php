@@ -41,6 +41,7 @@ class Resume {
     public function init() {
         // Add shortcode for resume upload form
         add_shortcode('resume_upload_form', array($this, 'render_resume_upload_form'));
+        add_shortcode('resume_versions', array($this, 'render_resume_versions'));
         
         // Add AJAX handlers
         add_action('wp_ajax_resume_upload', array($this, 'handle_resume_upload'));
@@ -96,6 +97,34 @@ class Resume {
 
         ob_start();
         require_once RESUME_AI_JOB_PLUGIN_DIR . 'includes/Views/resume-upload-form.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * Render resume versions view
+     */
+    public function render_resume_versions() {
+        // Check if user is logged in
+        if (!is_user_logged_in()) {
+            return '<div class="resume-ai-job-error">You must be logged in to view your resumes.</div>
+            <a href="javascript:void(0)" class="resume-ai-job-login-link" onclick="window.location.href=\'' . home_url() . '\'">Go to Home</a>';
+        }
+
+        // Check if user has resume_user role
+        $current_user = wp_get_current_user();
+        if (!in_array('resume_user', $current_user->roles)) {
+            return '<div class="resume-ai-job-error">You do not have permission to view resumes.</div>';
+        }
+
+        // Enqueue necessary scripts
+        wp_enqueue_script('jquery');
+        wp_localize_script('jquery', 'resume_ai_job', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('resume_upload_nonce')
+        ));
+
+        ob_start();
+        require_once RESUME_AI_JOB_PLUGIN_DIR . 'includes/Views/resume-versions.php';
         return ob_get_clean();
     }
 
@@ -165,10 +194,15 @@ class Resume {
             $version_ids = $this->save_ai_versions($ai_versions, $user_id, $attachment_id);
             error_log('Resume Upload - Version IDs: ' . print_r($version_ids, true));
 
+            // Get the resume versions page URL
+            $versions_page = get_option('resume_ai_job_versions_page');
+            $redirect_url = $versions_page ? get_permalink($versions_page) : home_url();
+
             wp_send_json_success(array(
                 'message' => 'Resume processed successfully',
                 'original_id' => $attachment_id,
-                'versions' => $version_ids
+                'versions' => $version_ids,
+                'redirect_url' => $redirect_url
             ));
 
         } catch (\Exception $e) {
