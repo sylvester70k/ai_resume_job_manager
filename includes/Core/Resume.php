@@ -281,25 +281,142 @@ class Resume {
             // Load the document
             $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
             
-            // Extract text from all sections
-            $text = '';
+            $result = [
+                'metadata' => [
+                    'title' => $phpWord->getDocInfo()->getTitle(),
+                    'creator' => $phpWord->getDocInfo()->getCreator(),
+                    'company' => $phpWord->getDocInfo()->getCompany(),
+                    'description' => $phpWord->getDocInfo()->getDescription(),
+                    'category' => $phpWord->getDocInfo()->getCategory(),
+                    'keywords' => $phpWord->getDocInfo()->getKeywords(),
+                    'lastModifiedBy' => $phpWord->getDocInfo()->getLastModifiedBy(),
+                    'created' => $phpWord->getDocInfo()->getCreated(),
+                    'modified' => $phpWord->getDocInfo()->getModified()
+                ],
+                'pages' => [],
+                'styles' => [],
+                'images' => []
+            ];
+
+            // Extract styles
+            foreach ($phpWord->getStyles() as $styleName => $style) {
+                $result['styles'][$styleName] = [
+                    'name' => $styleName,
+                    'type' => $style->getStyleType(),
+                    'properties' => $style->getStyleValues()
+                ];
+            }
+
+            // Process each section as a "page"
+            $pageIndex = 0;
             foreach ($phpWord->getSections() as $section) {
+                $pageData = [
+                    'number' => $pageIndex + 1,
+                    'text' => '',
+                    'elements' => [],
+                    'textWithPosition' => []
+                ];
+
+                $yPosition = 0;
                 foreach ($section->getElements() as $element) {
-                    if (method_exists($element, 'getText')) {
-                        $text .= $element->getText() . "\n";
+                    $elementData = [
+                        'type' => get_class($element),
+                        'content' => '',
+                        'style' => null,
+                        'position' => ['y' => $yPosition]
+                    ];
+
+                    if ($element instanceof \PhpOffice\PhpWord\Element\TextRun) {
+                        $textContent = '';
+                        foreach ($element->getElements() as $textElement) {
+                            if ($textElement instanceof \PhpOffice\PhpWord\Element\Text) {
+                                $textContent .= $textElement->getText();
+                                if ($textElement->getFontStyle()) {
+                                    $elementData['style'] = $textElement->getFontStyle()->getStyleValues();
+                                }
+                            }
+                        }
+                        $elementData['content'] = $textContent;
+                        $pageData['text'] .= $textContent . "\n";
+                        $pageData['textWithPosition'][] = [
+                            'text' => $textContent,
+                            'y' => $yPosition
+                        ];
+                        $yPosition += 20; // Approximate line height
+                    } 
+                    elseif ($element instanceof \PhpOffice\PhpWord\Element\Text) {
+                        $elementData['content'] = $element->getText();
+                        $pageData['text'] .= $element->getText() . "\n";
+                        $pageData['textWithPosition'][] = [
+                            'text' => $element->getText(),
+                            'y' => $yPosition
+                        ];
+                        if ($element->getFontStyle()) {
+                            $elementData['style'] = $element->getFontStyle()->getStyleValues();
+                        }
+                        $yPosition += 20;
                     }
+                    elseif ($element instanceof \PhpOffice\PhpWord\Element\ListItem) {
+                        $elementData['content'] = "• " . $element->getText();
+                        $pageData['text'] .= "• " . $element->getText() . "\n";
+                        $pageData['textWithPosition'][] = [
+                            'text' => "• " . $element->getText(),
+                            'y' => $yPosition
+                        ];
+                        $yPosition += 20;
+                    }
+                    elseif ($element instanceof \PhpOffice\PhpWord\Element\Table) {
+                        $tableContent = '';
+                        foreach ($element->getRows() as $row) {
+                            $rowContent = '';
+                            foreach ($row->getCells() as $cell) {
+                                $cellContent = '';
+                                foreach ($cell->getElements() as $cellElement) {
+                                    if ($cellElement instanceof \PhpOffice\PhpWord\Element\TextRun) {
+                                        foreach ($cellElement->getElements() as $textElement) {
+                                            if ($textElement instanceof \PhpOffice\PhpWord\Element\Text) {
+                                                $cellContent .= $textElement->getText() . ' ';
+                                            }
+                                        }
+                                    } elseif ($cellElement instanceof \PhpOffice\PhpWord\Element\Text) {
+                                        $cellContent .= $cellElement->getText() . ' ';
+                                    }
+                                }
+                                $rowContent .= trim($cellContent) . "\t";
+                            }
+                            $tableContent .= trim($rowContent) . "\n";
+                        }
+                        $elementData['content'] = $tableContent;
+                        $pageData['text'] .= $tableContent;
+                        $pageData['textWithPosition'][] = [
+                            'text' => $tableContent,
+                            'y' => $yPosition
+                        ];
+                        $yPosition += 20 * count($element->getRows());
+                    }
+
+                    $pageData['elements'][] = $elementData;
                 }
+
+                $result['pages'][] = $pageData;
+                $pageIndex++;
             }
-            
-            // Clean up the text
-            $text = preg_replace('/\s+/', ' ', $text);
-            $text = trim($text);
-            
-            if (empty($text)) {
-                return new \WP_Error('extraction_error', 'Could not extract text from DOCX file');
+
+            // Extract images
+            $images = $phpWord->getImages();
+            foreach ($images as $image) {
+                $result['images'][] = [
+                    'type' => $image->getImageType(),
+                    'width' => $image->getWidth(),
+                    'height' => $image->getHeight()
+                ];
             }
-            
-            return $text;
+
+            if (empty($result['pages'])) {
+                return new \WP_Error('extraction_error', 'Could not extract content from DOCX file');
+            }
+
+            return $result;
         } catch (\Exception $e) {
             return new \WP_Error('docx_error', 'Error processing DOCX: ' . $e->getMessage());
         }
@@ -891,3 +1008,4 @@ function extractDetailedPdfElements($file_path) {
         return new \WP_Error('pdf_error', 'Error processing PDF: ' . $e->getMessage());
     }
 }
+
