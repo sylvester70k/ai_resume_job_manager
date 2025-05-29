@@ -39,7 +39,7 @@ function get_resume_url($resume) {
 ?>
 
 <div class="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 py-10 px-2">
-    <div class="max-w-7xl mx-auto">
+    <div class="container mx-auto">
         <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-2 tracking-tight">Your Resume Versions</h1>
         <p class="text-center text-gray-500 mb-10">Easily manage and publish your different resume versions</p>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
