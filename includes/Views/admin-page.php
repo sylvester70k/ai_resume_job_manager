@@ -648,32 +648,3 @@ jQuery('#edit-user-form').on('submit', function(e) {
     });
 });
 </script>
-
-<div class="wrap">
-    <h1>Resume AI Job Settings</h1>
-    
-    <form method="post" action="options.php">
-        <?php settings_fields('resume_ai_job_options'); ?>
-        <?php do_settings_sections('resume_ai_job_options'); ?>
-        
-        <table class="form-table">
-            <tr>
-                <th scope="row">Resume Versions Page</th>
-                <td>
-                    <?php
-                    $versions_page = get_option('resume_ai_job_versions_page');
-                    wp_dropdown_pages(array(
-                        'name' => 'resume_ai_job_versions_page',
-                        'selected' => $versions_page,
-                        'show_option_none' => 'Select a page',
-                        'option_none_value' => ''
-                    ));
-                    ?>
-                    <p class="description">Select the page where the resume versions will be displayed. This page should contain the [resume_versions] shortcode.</p>
-                </td>
-            </tr>
-        </table>
-        
-        <?php submit_button(); ?>
-    </form>
-</div> 

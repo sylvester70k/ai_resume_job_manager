@@ -11,6 +11,14 @@ class AssetManager {
         // Enqueue jQuery
         wp_enqueue_script('jquery');
 
+        // Enqueue Font Awesome
+        wp_enqueue_style(
+            'resume-ai-job-fontawesome',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
+            [],
+            '5.15.4'
+        );
+
         // Enqueue Tailwind CSS
         wp_enqueue_script(
             'resume-ai-job-tailwind',

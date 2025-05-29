@@ -15,6 +15,16 @@ class Admin {
         add_action('wp_ajax_delete_user', array($this, 'handle_delete_user'));
         add_action('wp_ajax_edit_user', array($this, 'handle_edit_user'));
         add_action('wp_ajax_get_user_data', array($this, 'handle_get_user_data'));
+
+        // Position management AJAX handlers
+        add_action('wp_ajax_save_position', array($this, 'handle_save_position'));
+        add_action('wp_ajax_delete_position', array($this, 'handle_delete_position'));
+        add_action('wp_ajax_get_position_data', array($this, 'handle_get_position_data'));
+        add_action('wp_ajax_get_position_applications', array($this, 'handle_get_position_applications'));
+        
+        // Application management AJAX handlers
+        add_action('wp_ajax_get_application_data', array($this, 'handle_get_application_data'));
+        add_action('wp_ajax_update_application_status', array($this, 'handle_update_application_status'));
     }
 
     /**
@@ -39,6 +49,16 @@ class Admin {
             'resume-ai-job-settings',
             array($this, 'render_settings_page')
         );
+
+        add_submenu_page(
+            'resume-ai-job',
+            'Positions',
+            'Positions',
+            'manage_options',
+            'resume-ai-job-positions',
+            array($this, 'render_positions_page')
+        );
+        
     }
 
     /**
@@ -87,6 +107,12 @@ class Admin {
             'default' => 0
         ));
 
+        register_setting('resume_ai_job_settings', 'resume_ai_job_versions_page', array(
+            'type' => 'integer',
+            'sanitize_callback' => 'absint',
+            'default' => 0
+        ));
+
         add_settings_section(
             'resume_ai_job_api_settings',
             'AI API Settings',
@@ -113,6 +139,14 @@ class Admin {
             'resume_ai_job_upload_page',
             'Resume Upload Page',
             array($this, 'render_upload_page_field'),
+            'resume-ai-job-settings',
+            'resume_ai_job_page_settings'
+        );
+
+        add_settings_field(
+            'resume_ai_job_versions_page',
+            'Resume Versions Page',
+            array($this, 'render_versions_page_field'),
             'resume-ai-job-settings',
             'resume_ai_job_page_settings'
         );
@@ -331,6 +365,21 @@ class Admin {
     }
 
     /**
+     * Render versions page field.
+     */
+    public function render_versions_page_field() {
+        $versions_page = get_option('resume_ai_job_versions_page');
+        wp_dropdown_pages(array(
+            'name' => 'resume_ai_job_versions_page',
+            'selected' => $versions_page,
+            'show_option_none' => 'Select a page',
+            'option_none_value' => '0',
+            'class' => 'regular-text'
+        ));
+        echo '<p class="description">Select the page where the resume versions will be displayed. This page should contain the [resume_versions] shortcode.</p>';
+    }
+
+    /**
      * Render the admin page.
      */
     public function render_admin_page() {
@@ -369,5 +418,229 @@ class Admin {
             </div>
         </div>
         <?php
+    }
+
+    /**
+     * Render the positions page.
+     */
+    public function render_positions_page() {
+        require_once RESUME_AI_JOB_PLUGIN_DIR . 'includes/Views/admin-positions-page.php';
+    }
+
+    /**
+     * Handle save position AJAX request.
+     */
+    public function handle_save_position() {
+        check_ajax_referer('resume_ai_job_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+
+        // Validate required fields
+        $required_fields = array('title', 'description', 'location', 'status');
+        foreach ($required_fields as $field) {
+            if (empty($_POST[$field])) {
+                wp_send_json_error(array('message' => ucfirst($field) . ' is required'));
+            }
+        }
+
+        global $wpdb;
+        $positions_table = $wpdb->prefix . 'resume_ai_job_positions';
+
+        $position_id = isset($_POST['position_id']) ? intval($_POST['position_id']) : 0;
+        
+        // Prepare data with proper validation
+        $data = array(
+            'title' => sanitize_text_field($_POST['title']),
+            'description' => wp_kses_post($_POST['description']),
+            'location' => sanitize_text_field($_POST['location']),
+            'salary_from' => isset($_POST['salary_from']) ? intval($_POST['salary_from']) : 0,
+            'salary_to' => isset($_POST['salary_to']) ? intval($_POST['salary_to']) : 0,
+            'salary_currency' => isset($_POST['salary_currency']) ? sanitize_text_field($_POST['salary_currency']) : 'USD',
+            'deadline' => isset($_POST['deadline']) ? sanitize_text_field($_POST['deadline']) : null,
+            'status' => sanitize_text_field($_POST['status'])
+        );
+
+        error_log(print_r($data, true));
+
+        // Validate salary range
+        if ($data['salary_from'] > 0 && $data['salary_to'] > 0 && $data['salary_from'] > $data['salary_to']) {
+            wp_send_json_error(array('message' => 'Salary "from" amount cannot be greater than "to" amount'));
+        }
+
+        // Validate deadline
+        if (!empty($data['deadline'])) {
+            $deadline = strtotime($data['deadline']);
+            if ($deadline === false) {
+                wp_send_json_error(array('message' => 'Invalid deadline date format'));
+            }
+            if ($deadline < time()) {
+                wp_send_json_error(array('message' => 'Deadline cannot be in the past'));
+            }
+        }
+
+        if ($position_id) {
+            // Update existing position
+            $result = $wpdb->update(
+                $positions_table,
+                $data,
+                array('id' => $position_id)
+            );
+        } else {
+            // Insert new position
+            $result = $wpdb->insert($positions_table, $data);
+        }
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Failed to save position: ' . $wpdb->last_error));
+        }
+
+        wp_send_json_success(array('message' => 'Position saved successfully'));
+    }
+
+    /**
+     * Handle delete position AJAX request.
+     */
+    public function handle_delete_position() {
+        check_ajax_referer('resume_ai_job_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+
+        global $wpdb;
+        $positions_table = $wpdb->prefix . 'resume_ai_job_positions';
+        $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
+        
+        $position_id = intval($_POST['position_id']);
+
+        // Delete associated applications first
+        $wpdb->delete($applications_table, array('position_id' => $position_id));
+
+        // Delete position
+        $result = $wpdb->delete($positions_table, array('id' => $position_id));
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Failed to delete position'));
+        }
+
+        wp_send_json_success(array('message' => 'Position deleted successfully'));
+    }
+
+    /**
+     * Handle get position data AJAX request.
+     */
+    public function handle_get_position_data() {
+        check_ajax_referer('resume_ai_job_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+
+        global $wpdb;
+        $positions_table = $wpdb->prefix . 'resume_ai_job_positions';
+        
+        $position_id = intval($_POST['position_id']);
+        $position = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $positions_table WHERE id = %d",
+            $position_id
+        ));
+
+        if (!$position) {
+            wp_send_json_error(array('message' => 'Position not found'));
+        }
+
+        wp_send_json_success($position);
+    }
+
+    /**
+     * Handle get application data AJAX request.
+     */
+    public function handle_get_application_data() {
+        check_ajax_referer('resume_ai_job_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+
+        global $wpdb;
+        $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
+        $positions_table = $wpdb->prefix . 'resume_ai_job_positions';
+        
+        $application_id = intval($_POST['application_id']);
+        $application = $wpdb->get_row($wpdb->prepare(
+            "SELECT a.*, p.title as position_title, u.display_name as applicant_name 
+            FROM $applications_table a 
+            JOIN $positions_table p ON a.position_id = p.id 
+            JOIN {$wpdb->users} u ON a.user_id = u.ID 
+            WHERE a.id = %d",
+            $application_id
+        ));
+
+        if (!$application) {
+            wp_send_json_error(array('message' => 'Application not found'));
+        }
+
+        // Get resume URL
+        $resume_url = wp_get_attachment_url($application->resume_id);
+        $application->resume_url = $resume_url;
+
+        wp_send_json_success($application);
+    }
+
+    /**
+     * Handle update application status AJAX request.
+     */
+    public function handle_update_application_status() {
+        check_ajax_referer('resume_ai_job_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+
+        global $wpdb;
+        $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
+        
+        $application_id = intval($_POST['application_id']);
+        $status = sanitize_text_field($_POST['status']);
+
+        $result = $wpdb->update(
+            $applications_table,
+            array('status' => $status),
+            array('id' => $application_id)
+        );
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Failed to update application status'));
+        }
+
+        wp_send_json_success(array('message' => 'Application status updated successfully'));
+    }
+
+    /**
+     * Handle get position applications AJAX request.
+     */
+    public function handle_get_position_applications() {
+        check_ajax_referer('resume_ai_job_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+
+        global $wpdb;
+        $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
+        
+        $position_id = intval($_POST['position_id']);
+        $applications = $wpdb->get_results($wpdb->prepare(
+            "SELECT a.*, u.display_name as applicant_name 
+            FROM $applications_table a 
+            JOIN {$wpdb->users} u ON a.user_id = u.ID 
+            WHERE a.position_id = %d 
+            ORDER BY a.created_at DESC",
+            $position_id
+        ));
+
+        wp_send_json_success($applications);
     }
 } 

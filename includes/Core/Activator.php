@@ -49,6 +49,7 @@ class Activator {
      */
     private function create_tables() {
         global $wpdb;
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         $charset_collate = $wpdb->get_charset_collate();
         $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
 
@@ -65,8 +66,37 @@ class Activator {
             PRIMARY KEY  (id),
             KEY user_id (user_id)
         ) $charset_collate;";
+        
+        dbDelta($sql);
+        $table_name = $wpdb->prefix . 'resume_ai_job_positions';
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            title varchar(255) NOT NULL,
+            description text,
+            location varchar(255) DEFAULT NULL,
+            salary_from bigint(20) DEFAULT NULL,
+            salary_to bigint(20) DEFAULT NULL,
+            salary_currency varchar(255) DEFAULT NULL,
+            deadline datetime DEFAULT NULL,
+            status varchar(255) DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id)
+        ) $charset_collate;";
 
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+        $table_name = $wpdb->prefix . 'resume_ai_job_applications';
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            position_id bigint(20) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            cover_letter text,
+            resume_id bigint(20) NOT NULL,
+            status varchar(255) DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id)
+        ) $charset_collate;";
         dbDelta($sql);
     }
 
