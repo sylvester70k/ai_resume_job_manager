@@ -38,6 +38,13 @@ class Plugin {
     private $resume;
 
     /**
+     * Position instance.
+     * 
+     * @var \ResumeAIJob\Core\Position
+     */
+    private $position;
+
+    /**
      * Get plugin instance.
      *
      * @return Plugin
@@ -73,6 +80,10 @@ class Plugin {
         // Initialize resume
         $this->resume = new Resume();
         $this->resume->init();
+
+        // Initialize position
+        $this->position = new Position();
+        $this->position->init();
 
         // Initialize AJAX handlers
         $ajax = new \ResumeAIJob\Ajax\AjaxHandler();
