@@ -499,6 +499,9 @@ class Resume {
         $version_ids = array();
         
         foreach ($versions as $type => $content) {
+            // Clean and deduplicate content
+            $content = $this->clean_resume_content($content);
+            
             // Get template type based on original file
             $original_file = get_attached_file($original_id);
             $template_type = pathinfo($original_file, PATHINFO_EXTENSION);
@@ -506,32 +509,139 @@ class Resume {
             // Apply template
             $document = $this->template_manager->apply_template($template_type, 'default', $content);
             if (is_wp_error($document)) {
-                error_log('Template Error: ' . $document->get_error_message());
+                error_log('Template Error for ' . $type . ': ' . $document->get_error_message());
                 continue;
             }
             
-            // Generate file path
+            // Generate file path with better naming convention
             $upload_dir = wp_upload_dir();
-            $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . time() . '.' . $template_type;
+            $timestamp = date('Ymd_His');
+            $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $template_type;
             
-            // Save document
-            if ($template_type === 'pdf') {
-                $document->Output($file_path, 'F');
-            } else {
-                $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'Word2007');
-                $objWriter->save($file_path);
-            }
-            
-            // Create attachment
-            $attachment_id = $this->create_resume_attachment($file_path, $user_id);
-            if (!is_wp_error($attachment_id)) {
-                update_post_meta($attachment_id, '_resume_type', 'ai_' . $type);
-                update_post_meta($attachment_id, '_original_resume_id', $original_id);
-                $version_ids[$type] = $attachment_id;
+            try {
+                // Save document
+                if ($template_type === 'pdf') {
+                    $document->Output($file_path, 'F');
+                } else {
+                    $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'Word2007');
+                    $objWriter->save($file_path);
+                }
+                
+                // Create attachment
+                $attachment_id = $this->create_resume_attachment($file_path, $user_id);
+                if (!is_wp_error($attachment_id)) {
+                    update_post_meta($attachment_id, '_resume_type', 'ai_' . $type);
+                    update_post_meta($attachment_id, '_original_resume_id', $original_id);
+                    $version_ids[$type] = $attachment_id;
+                    
+                    // Log success
+                    error_log('Successfully saved ' . $type . ' version with ID: ' . $attachment_id);
+                } else {
+                    error_log('Failed to create attachment for ' . $type . ': ' . $attachment_id->get_error_message());
+                }
+            } catch (\Exception $e) {
+                error_log('Error saving ' . $type . ' version: ' . $e->getMessage());
+                continue;
             }
         }
 
         return $version_ids;
+    }
+
+    /**
+     * Clean and deduplicate resume content
+     */
+    private function clean_resume_content($content) {
+        // Clean basic fields
+        $basic_fields = ['name', 'email', 'phone', 'address', 'summary'];
+        foreach ($basic_fields as $field) {
+            if (isset($content[$field])) {
+                $content[$field] = trim($content[$field]);
+                if ($content[$field] === 'N/A') {
+                    $content[$field] = '';
+                }
+            }
+        }
+
+        // Clean and deduplicate arrays
+        $array_fields = ['social_links', 'skills', 'certifications', 'languages', 'interests', 'awards'];
+        foreach ($array_fields as $field) {
+            if (isset($content[$field]) && is_array($content[$field])) {
+                // Remove empty values and duplicates
+                $content[$field] = array_values(array_filter(array_unique($content[$field])));
+            }
+        }
+
+        // Clean and deduplicate experience
+        if (isset($content['experience']) && is_array($content['experience'])) {
+            $unique_experiences = [];
+            $seen = [];
+            
+            foreach ($content['experience'] as $exp) {
+                // Skip if missing required fields
+                if (empty($exp['company']) || empty($exp['title'])) {
+                    continue;
+                }
+                
+                // Create unique key
+                $key = $exp['company'] . '|' . $exp['title'] . '|' . $exp['start_date'] . '|' . $exp['end_date'];
+                
+                if (!isset($seen[$key])) {
+                    $seen[$key] = true;
+                    $unique_experiences[] = $exp;
+                }
+            }
+            
+            $content['experience'] = $unique_experiences;
+        }
+
+        // Clean and deduplicate education
+        if (isset($content['education']) && is_array($content['education'])) {
+            $unique_education = [];
+            $seen = [];
+            
+            foreach ($content['education'] as $edu) {
+                // Skip if missing required fields
+                if (empty($edu['school']) || empty($edu['degree'])) {
+                    continue;
+                }
+                
+                // Create unique key
+                $key = $edu['school'] . '|' . $edu['degree'] . '|' . $edu['start_date'] . '|' . $edu['end_date'];
+                
+                if (!isset($seen[$key])) {
+                    $seen[$key] = true;
+                    $unique_education[] = $edu;
+                }
+            }
+            
+            $content['education'] = $unique_education;
+        }
+
+        // Clean and deduplicate projects
+        if (isset($content['projects']) && is_array($content['projects'])) {
+            $unique_projects = [];
+            $seen = [];
+            
+            foreach ($content['projects'] as $proj) {
+                // Skip if missing required fields
+                if (empty($proj['name'])) {
+                    continue;
+                }
+                
+                // Create unique key
+                $key = $proj['name'] . '|' . $proj['start_date'] . '|' . $proj['end_date'];
+                
+                if (!isset($seen[$key])) {
+                    $seen[$key] = true;
+                    $unique_projects[] = $proj;
+                }
+            }
+            
+            $content['projects'] = $unique_projects;
+        }
+
+        return $content;
     }
 
     public function get_available_templates() {
