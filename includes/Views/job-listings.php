@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<div class="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-4">
+<div class="!max-w-full mx-auto px-3 sm:px-4 lg:px-6 py-4">
     <!-- Filters Section -->
     <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
         <form id="job-filters-form" class="flex flex-col lg:flex-row gap-3 items-end">
