@@ -4,44 +4,38 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-4">
     <!-- Filters Section -->
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-        <form id="job-filters-form" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-2">
-                    <label for="job-title" class="block text-sm font-medium text-gray-700">Job Title</label>
-                    <input type="text" id="job-title" name="title" placeholder="Search by job title" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="space-y-2">
-                    <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
-                    <input type="text" id="location" name="location" placeholder="Search by location"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <form id="job-filters-form" class="flex flex-col lg:flex-row gap-3 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label for="job-title" class="block text-xs font-medium text-gray-700 mb-1">Job Title</label>
+                <input type="text" id="job-title" name="title" placeholder="Search by job title" 
+                       class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label for="location" class="block text-xs font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" id="location" name="location" placeholder="Search by location"
+                       class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Salary Range</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="salary-from" name="salary_from" placeholder="From"
+                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                    <span class="text-gray-500 text-sm">to</span>
+                    <input type="number" id="salary-to" name="salary_to" placeholder="To"
+                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Salary Range</label>
-                    <div class="flex items-center space-x-4">
-                        <input type="number" id="salary-from" name="salary_from" placeholder="From"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <span class="text-gray-500">to</span>
-                        <input type="number" id="salary-to" name="salary_to" placeholder="To"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
-                        Search Jobs
-                    </button>
-                </div>
-            </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors whitespace-nowrap">
+                Search Jobs
+            </button>
         </form>
     </div>
 
     <!-- Job Listings Section -->
-    <div class="space-y-6">
+    <div class="space-y-3">
         <div id="job-listings-container">
             <!-- Job listings will be loaded here dynamically -->
         </div>
@@ -49,29 +43,29 @@ if (!defined('ABSPATH')) {
 
     <!-- Application Modal -->
     <div id="application-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-w-2xl">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-800">Apply for Position</h2>
-                <span class="close text-gray-500 hover:text-gray-700 cursor-pointer text-2xl">&times;</span>
+        <div class="relative top-16 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white max-w-2xl">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-lg font-semibold text-gray-800">Apply for Position</h2>
+                <span class="close text-gray-500 hover:text-gray-700 cursor-pointer text-xl">&times;</span>
             </div>
-            <form id="application-form" class="space-y-4">
+            <form id="application-form" class="space-y-3">
                 <input type="hidden" id="position-id" name="position_id">
                 
-                <div class="space-y-2">
-                    <label for="cover-letter" class="block text-sm font-medium text-gray-700">Cover Letter</label>
-                    <textarea id="cover-letter" name="cover_letter" rows="6" required
-                              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                <div class="space-y-1">
+                    <label for="cover-letter" class="block text-xs font-medium text-gray-700">Cover Letter</label>
+                    <textarea id="cover-letter" name="cover_letter" rows="4" required
+                              class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"></textarea>
                 </div>
 
-                <div class="space-y-2">
-                    <label for="resume-select" class="block text-sm font-medium text-gray-700">Select Resume</label>
+                <div class="space-y-1">
+                    <label for="resume-select" class="block text-xs font-medium text-gray-700">Select Resume</label>
                     <select id="resume-select" name="resume_id" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
                         <!-- Resumes will be loaded here dynamically -->
                     </select>
                 </div>
 
-                <button type="submit" class="w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors">
                     Submit Application
                 </button>
             </form>
@@ -134,38 +128,38 @@ jQuery(document).ready(function($) {
         container.empty();
 
         if (jobs.length === 0) {
-            container.html('<p class="text-center text-gray-500 py-8">No jobs found matching your criteria.</p>');
+            container.html('<p class="text-center text-gray-500 py-4 text-sm">No jobs found matching your criteria.</p>');
             return;
         }
 
         jobs.forEach(function(job) {
             const jobCard = `
-                <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-                    <h3 class="text-xl font-semibold text-blue-600 mb-3">${job.title}</h3>
-                    <div class="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
+                    <h3 class="text-base font-semibold text-blue-600 mb-2">${job.title}</h3>
+                    <div class="flex flex-wrap gap-3 text-xs text-gray-600 mb-2">
                         <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
                             ${job.location}
                         </span>
                         <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             ${formatSalary(job)}
                         </span>
                         <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             Posted ${formatDate(job.created_at)}
                         </span>
                     </div>
-                    <p class="text-gray-700 mb-4">${job.description}</p>
+                    <p class="text-sm text-gray-700 mb-3">${job.description}</p>
                     <button onclick="openApplicationModal(${job.id})" 
-                            class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                            class="bg-blue-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors">
                         Apply Now
                     </button>
                 </div>
