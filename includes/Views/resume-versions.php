@@ -144,7 +144,6 @@ function get_resume_url($resume) {
                                 src="<?php echo esc_url($resume_url); ?>#toolbar=0&navpanes=0" 
                                 class="w-full h-[300px] border-0 rounded" 
                                 loading="lazy" 
-                                onload="injectTailwindStyles(this)" 
                                 onerror="this.parentNode.innerHTML='<div class=\'flex flex-col items-center justify-center w-full h-full text-gray-400 text-sm\'><svg xmlns=\'http://www.w3.org/2000/svg\' class=\'h-8 w-8 mb-2\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M6 18L18 6M6 6l12 12\' /></svg>Unable to preview this resume.</div>';"
                             ></iframe>
                         <?php else: ?>
@@ -186,26 +185,26 @@ function get_resume_url($resume) {
 </div>
 
 <script>
-function injectTailwindStyles(iframe) {
-    try {
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+// function injectTailwindStyles(iframe) {
+//     try {
+//         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
         
-        // Create and inject Tailwind script
-        const tailwindScript = iframeDoc.createElement('script');
-        tailwindScript.src = 'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4';
-        iframeDoc.head.appendChild(tailwindScript);
+//         // Create and inject Tailwind script
+//         const tailwindScript = iframeDoc.createElement('script');
+//         tailwindScript.src = 'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4';
+//         iframeDoc.head.appendChild(tailwindScript);
 
-        // Add a style tag for any additional custom styles
-        const customStyles = iframeDoc.createElement('style');
-        customStyles.textContent = `
-            body { margin: 0; padding: 1rem; }
-            * { box-sizing: border-box; }
-        `;
-        iframeDoc.head.appendChild(customStyles);
-    } catch (e) {
-        console.error('Error injecting styles into iframe:', e);
-    }
-}
+//         // Add a style tag for any additional custom styles
+//         const customStyles = iframeDoc.createElement('style');
+//         customStyles.textContent = `
+//             body { margin: 0; padding: 1rem; }
+//             * { box-sizing: border-box; }
+//         `;
+//         iframeDoc.head.appendChild(customStyles);
+//     } catch (e) {
+//         console.error('Error injecting styles into iframe:', e);
+//     }
+// }
 
 function publishResume(resumeId) {
     if (!confirm('Are you sure you want to publish this resume version?')) {
