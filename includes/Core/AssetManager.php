@@ -17,7 +17,7 @@ class AssetManager {
             'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4',
             [],
             RESUME_AI_JOB_VERSION,
-            true
+            false
         );
 
         // Enqueue custom styles
