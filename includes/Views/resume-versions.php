@@ -39,7 +39,7 @@ function get_resume_url($resume) {
 ?>
 
 <div class="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 py-10 px-2">
-    <div class="container mx-auto">
+    <div class="mx-auto">
         <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-2 tracking-tight">Your Resume Versions</h1>
         <p class="text-center text-gray-500 mb-10">Easily manage and publish your different resume versions</p>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -72,7 +72,7 @@ function get_resume_url($resume) {
                 $resume_url = get_resume_url($resume);
                 $is_published = is_resume_published($resume, $published_resume);
             ?>
-            <div class="flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-transform hover:scale-[1.03] animate-fade-in">
+            <div class="max-w-5xl min-w-4xl flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-transform hover:scale-[1.03] animate-fade-in">
                 <div class="flex-1 flex flex-col p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-bold text-gray-900 leading-tight"><?php echo $item['label']; ?></h3>
