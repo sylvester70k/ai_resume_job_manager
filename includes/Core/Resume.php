@@ -777,8 +777,28 @@ class Resume {
                         // Create new PhpWord instance
                         $phpWord = new \PhpOffice\PhpWord\PhpWord();
                         
+                        // Set document properties
+                        $phpWord->getDocInfo()
+                            ->setCreator('Resume AI Job Manager')
+                            ->setCompany('Resume AI')
+                            ->setTitle('Resume - ' . $content['name'])
+                            ->setDescription('Generated Resume')
+                            ->setCategory('Resume')
+                            ->setLastModifiedBy('Resume AI Job Manager')
+                            ->setCreated(time())
+                            ->setModified(time());
+
                         // Add a section
-                        $section = $phpWord->addSection();
+                        $section = $phpWord->addSection([
+                            'marginLeft' => 600,
+                            'marginRight' => 600,
+                            'marginTop' => 600,
+                            'marginBottom' => 600
+                        ]);
+
+                        // Set default font
+                        $phpWord->setDefaultFontName('Helvetica');
+                        $phpWord->setDefaultFontSize(12);
                         
                         // Convert HTML to Word document
                         $dom = new \DOMDocument();
