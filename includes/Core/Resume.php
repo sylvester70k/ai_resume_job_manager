@@ -842,77 +842,90 @@ class Resume {
     private function processHtmlElement($element, $section) {
         if (!$element) return;
 
-        // Get element style
-        $style = [];
-        if ($element->hasAttribute('style')) {
-            $styleString = $element->getAttribute('style');
-            $styles = explode(';', $styleString);
-            foreach ($styles as $styleItem) {
-                $parts = explode(':', $styleItem);
-                if (count($parts) === 2) {
-                    $style[trim($parts[0])] = trim($parts[1]);
-                }
+        // Handle different node types
+        if ($element instanceof \DOMText) {
+            // Handle text nodes
+            if (trim($element->textContent) !== '') {
+                $section->addText($element->textContent);
             }
+            return;
         }
 
-        // Process different element types
-        switch (strtolower($element->nodeName)) {
-            case 'h1':
-            case 'h2':
-            case 'h3':
-            case 'h4':
-            case 'h5':
-            case 'h6':
-                $text = $element->textContent;
-                $section->addText($text, ['bold' => true, 'size' => 16]);
-                break;
-
-            case 'p':
-                $text = $element->textContent;
-                $section->addText($text, ['size' => 12]);
-                break;
-
-            case 'ul':
-            case 'ol':
-                foreach ($element->childNodes as $li) {
-                    if ($li->nodeName === 'li') {
-                        $text = $li->textContent;
-                        $section->addListItem($text, 0);
+        if ($element instanceof \DOMElement) {
+            // Get element style
+            $style = [];
+            if ($element->hasAttribute('style')) {
+                $styleString = $element->getAttribute('style');
+                $styles = explode(';', $styleString);
+                foreach ($styles as $styleItem) {
+                    $parts = explode(':', $styleItem);
+                    if (count($parts) === 2) {
+                        $style[trim($parts[0])] = trim($parts[1]);
                     }
                 }
-                break;
+            }
 
-            case 'table':
-                $table = $section->addTable();
-                foreach ($element->childNodes as $tr) {
-                    if ($tr->nodeName === 'tr') {
-                        $row = $table->addRow();
-                        foreach ($tr->childNodes as $td) {
-                            if ($td->nodeName === 'td' || $td->nodeName === 'th') {
-                                $cell = $row->addCell();
-                                $cell->addText($td->textContent);
+            // Process different element types
+            switch (strtolower($element->nodeName)) {
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                    $text = $element->textContent;
+                    $section->addText($text, ['bold' => true, 'size' => 16]);
+                    break;
+
+                case 'p':
+                    $text = $element->textContent;
+                    $section->addText($text, ['size' => 12]);
+                    break;
+
+                case 'ul':
+                case 'ol':
+                    foreach ($element->childNodes as $li) {
+                        if ($li instanceof \DOMElement && $li->nodeName === 'li') {
+                            $text = $li->textContent;
+                            $section->addListItem($text, 0);
+                        }
+                    }
+                    break;
+
+                case 'table':
+                    $table = $section->addTable();
+                    foreach ($element->childNodes as $tr) {
+                        if ($tr instanceof \DOMElement && $tr->nodeName === 'tr') {
+                            $row = $table->addRow();
+                            foreach ($tr->childNodes as $td) {
+                                if ($td instanceof \DOMElement && ($td->nodeName === 'td' || $td->nodeName === 'th')) {
+                                    $cell = $row->addCell();
+                                    $cell->addText($td->textContent);
+                                }
                             }
                         }
                     }
-                }
-                break;
+                    break;
 
-            case 'br':
-                $section->addTextBreak();
-                break;
+                case 'br':
+                    $section->addTextBreak();
+                    break;
 
-            case '#text':
-                if (trim($element->textContent) !== '') {
-                    $section->addText($element->textContent);
-                }
-                break;
+                case 'div':
+                case 'span':
+                    // Process child elements
+                    foreach ($element->childNodes as $child) {
+                        $this->processHtmlElement($child, $section);
+                    }
+                    break;
 
-            default:
-                // Process child elements
-                foreach ($element->childNodes as $child) {
-                    $this->processHtmlElement($child, $section);
-                }
-                break;
+                default:
+                    // For unknown elements, just process their children
+                    foreach ($element->childNodes as $child) {
+                        $this->processHtmlElement($child, $section);
+                    }
+                    break;
+            }
         }
     }
 
