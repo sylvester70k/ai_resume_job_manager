@@ -179,10 +179,17 @@ class TemplateManager {
             $font_family = strtolower($font_family);
             $font_family = $font_map[$font_family] ?? 'helvetica';
             
+            // Handle font size - remove any units and convert to integer
+            $font_size = $settings['font']['size'] ?? 12;
+            if (is_string($font_size)) {
+                $font_size = preg_replace('/[^0-9.]/', '', $font_size);
+            }
+            $font_size = (int)$font_size;
+            
             $pdf->SetFont(
                 $font_family,
                 '',
-                $settings['font']['size'] ?? 12
+                $font_size
             );
         }
         

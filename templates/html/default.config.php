@@ -4,9 +4,9 @@ return [
     'description' => 'A clean and professional resume template with a modern layout',
     'settings' => [
         'font' => [
-            'family' => 'Arial, sans-serif',
-            'size' => '12pt',
-            'header_size' => '16pt'
+            'family' => 'helvetica',
+            'size' => 12,
+            'header_size' => 16
         ],
         'margins' => [
             'left' => 15,
