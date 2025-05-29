@@ -54,6 +54,8 @@ class TemplateManager {
         foreach ($files as $file) {
             $filename = basename($file);
             $name = pathinfo($filename, PATHINFO_FILENAME);
+            // Remove .html or .twig from the name
+            $name = str_replace(['.html', '.twig'], '', $name);
             
             // Load configuration if it exists
             $config_file = $dir . $name . '.config.php';

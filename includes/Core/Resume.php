@@ -550,6 +550,12 @@ class Resume {
             }
         }
 
+        if (empty($version_ids)) {
+            error_log('No versions were successfully created');
+        } else {
+            error_log('Created versions: ' . print_r($version_ids, true));
+        }
+
         return $version_ids;
     }
 
