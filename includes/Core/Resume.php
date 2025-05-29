@@ -100,71 +100,85 @@ class Resume {
     }
 
     public function handle_resume_upload() {
-        check_ajax_referer('resume_upload_nonce', 'resume_upload_nonce');
+        try {
+            check_ajax_referer('resume_upload_nonce', 'resume_upload_nonce');
 
-        if (!isset($_FILES['resume_file'])) {
-            wp_send_json_error(array('message' => 'No file uploaded'));
+            if (!isset($_FILES['resume_file'])) {
+                error_log('Resume Upload Error: No file uploaded');
+                wp_send_json_error(array('message' => 'No file uploaded'));
+                return;
+            }
+
+            $file = $_FILES['resume_file'];
+            $user_id = get_current_user_id();
+
+            // Log file information
+            error_log('Resume Upload - File Info: ' . print_r($file, true));
+
+            // Validate file
+            $validation = $this->validate_resume_file($file);
+            if (is_wp_error($validation)) {
+                error_log('Resume Upload - Validation Error: ' . $validation->get_error_message());
+                wp_send_json_error(array('message' => $validation->get_error_message()));
+                return;
+            }
+
+            // Use WordPress's built-in file handling
+            $upload = wp_handle_upload($file, array('test_form' => false));
+            if (isset($upload['error'])) {
+                error_log('Resume Upload - Upload Error: ' . $upload['error']);
+                wp_send_json_error(array('message' => $upload['error']));
+                return;
+            }
+
+            error_log('Resume Upload - Upload Success: ' . print_r($upload, true));
+
+            // Create attachment
+            $attachment_id = $this->create_resume_attachment($upload['file'], $user_id);
+            if (is_wp_error($attachment_id)) {
+                error_log('Resume Upload - Attachment Error: ' . $attachment_id->get_error_message());
+                wp_send_json_error(array('message' => $attachment_id->get_error_message()));
+                return;
+            }
+
+            error_log('Resume Upload - Attachment Created: ' . $attachment_id);
+
+            // Extract text from resume
+            $resume_text = $this->extract_resume_text($upload['file']);
+            if (is_wp_error($resume_text)) {
+                error_log('Resume Upload - Text Extraction Error: ' . $resume_text->get_error_message());
+                wp_send_json_error(array('message' => $resume_text->get_error_message()));
+                return;
+            }
+
+            // Process with AI
+            $ai_versions = $this->process_resume_with_ai($resume_text);
+            if (is_wp_error($ai_versions)) {
+                error_log('Resume Upload - AI Processing Error: ' . $ai_versions->get_error_message());
+                wp_send_json_error(array('message' => $ai_versions->get_error_message()));
+                return;
+            }
+
+            error_log('Resume Upload - AI Versions Created: ');
+
+            // Save AI versions
+            $version_ids = $this->save_ai_versions($ai_versions, $user_id, $attachment_id);
+            error_log('Resume Upload - Version IDs: ' . print_r($version_ids, true));
+
+            wp_send_json_success(array(
+                'message' => 'Resume processed successfully',
+                'original_id' => $attachment_id,
+                'versions' => $version_ids
+            ));
+
+        } catch (\Exception $e) {
+            error_log('Resume Upload - Critical Error: ' . $e->getMessage());
+            error_log('Resume Upload - Stack Trace: ' . $e->getTraceAsString());
+            wp_send_json_error(array(
+                'message' => 'An unexpected error occurred while processing your resume. Please try again later.',
+                'error_details' => WP_DEBUG ? $e->getMessage() : null
+            ));
         }
-
-        $file = $_FILES['resume_file'];
-        $user_id = get_current_user_id();
-
-        // Log file information
-        error_log('Resume Upload - File Info: ' . print_r($file, true));
-
-        // Validate file
-        $validation = $this->validate_resume_file($file);
-        if (is_wp_error($validation)) {
-            error_log('Resume Upload - Validation Error: ' . $validation->get_error_message());
-            wp_send_json_error(array('message' => $validation->get_error_message()));
-        }
-
-        // Use WordPress's built-in file handling
-        $upload = wp_handle_upload($file, array('test_form' => false));
-        if (isset($upload['error'])) {
-            error_log('Resume Upload - Upload Error: ' . $upload['error']);
-            wp_send_json_error(array('message' => $upload['error']));
-        }
-
-        error_log('Resume Upload - Upload Success: ' . print_r($upload, true));
-
-        // Create attachment
-        $attachment_id = $this->create_resume_attachment($upload['file'], $user_id);
-        if (is_wp_error($attachment_id)) {
-            error_log('Resume Upload - Attachment Error: ' . $attachment_id->get_error_message());
-            wp_send_json_error(array('message' => $attachment_id->get_error_message()));
-        }
-
-        error_log('Resume Upload - Attachment Created: ' . $attachment_id);
-
-        // Extract text from resume
-        $resume_text = $this->extract_resume_text($upload['file']);
-        if (is_wp_error($resume_text)) {
-            error_log('Resume Upload - Text Extraction Error: ' . $resume_text->get_error_message());
-            wp_send_json_error(array('message' => $resume_text->get_error_message()));
-        }
-        // error_log('Resume Upload - Text Extracted: ' . $resume_text);
-
-        // error_log('Resume Upload - Text Extracted: ' . substr($resume_text, 0, 100) . '...');
-
-        // Process with AI
-        $ai_versions = $this->process_resume_with_ai($resume_text);
-        if (is_wp_error($ai_versions)) {
-            error_log('Resume Upload - AI Processing Error: ' . $ai_versions->get_error_message());
-            wp_send_json_error(array('message' => $ai_versions->get_error_message()));
-        }
-
-        error_log('Resume Upload - AI Versions Created: ' . print_r($ai_versions, true));
-
-        // Save AI versions
-        $version_ids = $this->save_ai_versions($ai_versions, $user_id, $attachment_id);
-        error_log('Resume Upload - Version IDs: ' . print_r($version_ids, true));
-
-        wp_send_json_success(array(
-            'message' => 'Resume processed successfully',
-            'original_id' => $attachment_id,
-            'versions' => $version_ids
-        ));
     }
 
     private function validate_resume_file($file) {
@@ -319,147 +333,174 @@ class Resume {
     }
 
     private function process_resume_with_ai($detailedElements) {
-        if (empty($this->ai_api_key)) {
-            return new \WP_Error('no_api_key', 'AI API key not configured');
-        }
+        try {
+            if (empty($this->ai_api_key)) {
+                error_log('AI Processing Error: API key not configured');
+                return new \WP_Error('no_api_key', 'AI API key not configured');
+            }
 
-        $versions = array();
-        $prompts = array(
-            'ats' => "Analyze this resume section and create an ATS-optimized version that maintains the original content but improves keyword optimization and structure for applicant tracking systems:\n\n",
-            'human' => "Analyze this resume section and create a human-friendly version that maintains the original content but improves readability, formatting, and impact:\n\n"
-        );
+            $versions = array();
+            $prompts = array(
+                'ats' => "Analyze this resume section and create an ATS-optimized version that maintains the original content but improves keyword optimization and structure for applicant tracking systems:\n\n",
+                'human' => "Analyze this resume section and create a human-friendly version that maintains the original content but improves readability, formatting, and impact:\n\n"
+            );
 
-        $systemPrompt = "You are a professional resume writer.";
+            $systemPrompt = "You are a professional resume writer.";
 
-        // Process each page separately
-        foreach ($detailedElements['pages'] as $pageIndex => $page) {
-            $pageText = $page['text'];
-            
-            // Process each version type
-            foreach ($prompts as $type => $basePrompt) {
-                $prompt = $basePrompt . '<resume>' . $pageText . '</resume>';
+            // Process each page separately
+            foreach ($detailedElements['pages'] as $pageIndex => $page) {
+                $pageText = $page['text'];
                 
-                // Add timeout and retry logic
-                $maxRetries = 3;
-                $retryCount = 0;
-                $success = false;
-                $systemPrompt = $systemPrompt . $prompt;
-                $userPrompt = "return valid json following the format:
-                {
-                    'name': 'name',
-                    'email': 'email',
-                    'phone': 'phone',
-                    'address': 'address',
-                    'social_links': ['social_link1', 'social_link2', 'social_link3'],
-                    'summary': 'summary',
-                    'experience': [
-                        {
-                            'company': 'company',
-                            'title': 'title',
-                            'start_date': 'start_date',
-                            'end_date': 'end_date',
-                            'description': 'description'
-                        }
-                    ],
-                    'education': [
-                        {
-                            'school': 'school',
-                            'degree': 'degree',
-                            'start_date': 'start_date',
-                            'end_date': 'end_date',
-                            'description': 'description'
-                        }
-                    ],
-                    'skills': ['skill1', 'skill2', 'skill3'],
-                    'projects': [
-                        {
-                            'name': 'project_name',
-                            'description': 'project_description',
-                            'start_date': 'start_date',
-                            'end_date': 'end_date'
-                        }
-                    ],
-                    'certifications': ['certification1', 'certification2', 'certification3'],
-                    'languages': ['language1', 'language2', 'language3'],
-                    'interests': ['interest1', 'interest2', 'interest3'],
-                    'awards': ['award1', 'award2', 'award3']
-                }";
-                
-                while (!$success && $retryCount < $maxRetries) {
-                    $response = wp_remote_post($this->ai_api_url, array(
-                        'headers' => array(
-                            'Authorization' => 'Bearer ' . $this->ai_api_key,
-                            'Content-Type' => 'application/json'
-                        ),
-                        'body' => json_encode(array(
-                            'model' => 'gpt-4o',
-                            'messages' => array(
-                                array('role' => 'system', 'content' => $systemPrompt),
-                                array('role' => 'user', 'content' => $userPrompt)
-                            ),
-                            'temperature' => 0.7,
-                            'response_format' => array(
-                                'type' => 'json_object'
-                            )
-                        )),
-                        'timeout' => 30,
-                        'sslverify' => false
-                    ));
+                // Process each version type
+                foreach ($prompts as $type => $basePrompt) {
+                    $prompt = $basePrompt . '<resume>' . $pageText . '</resume>';
+                    
+                    // Add timeout and retry logic
+                    $maxRetries = 3;
+                    $retryCount = 0;
+                    $success = false;
+                    $systemPrompt = $systemPrompt . $prompt;
+                    $userPrompt = "return valid json following the format:
+                    {
+                        'name': 'name',
+                        'email': 'email',
+                        'phone': 'phone',
+                        'address': 'address',
+                        'social_links': ['social_link1', 'social_link2', 'social_link3'],
+                        'summary': 'summary',
+                        'experience': [
+                            {
+                                'company': 'company',
+                                'title': 'title',
+                                'start_date': 'start_date',
+                                'end_date': 'end_date',
+                                'description': 'description'
+                            }
+                        ],
+                        'education': [
+                            {
+                                'school': 'school',
+                                'degree': 'degree',
+                                'start_date': 'start_date',
+                                'end_date': 'end_date',
+                                'description': 'description'
+                            }
+                        ],
+                        'skills': ['skill1', 'skill2', 'skill3'],
+                        'projects': [
+                            {
+                                'name': 'project_name',
+                                'description': 'project_description',
+                                'start_date': 'start_date',
+                                'end_date': 'end_date'
+                            }
+                        ],
+                        'certifications': ['certification1', 'certification2', 'certification3'],
+                        'languages': ['language1', 'language2', 'language3'],
+                        'interests': ['interest1', 'interest2', 'interest3'],
+                        'awards': ['award1', 'award2', 'award3']
+                    }";
+                    
+                    while (!$success && $retryCount < $maxRetries) {
+                        try {
+                            $response = wp_remote_post($this->ai_api_url, array(
+                                'headers' => array(
+                                    'Authorization' => 'Bearer ' . $this->ai_api_key,
+                                    'Content-Type' => 'application/json'
+                                ),
+                                'body' => json_encode(array(
+                                    'model' => 'gpt-4o',
+                                    'messages' => array(
+                                        array('role' => 'system', 'content' => $systemPrompt),
+                                        array('role' => 'user', 'content' => $userPrompt)
+                                    ),
+                                    'temperature' => 0.7,
+                                    'response_format' => array(
+                                        'type' => 'json_object'
+                                    )
+                                )),
+                                'timeout' => 30,
+                                'sslverify' => false
+                            ));
 
-                    if (is_wp_error($response)) {
-                        $error_message = $response->get_error_message();
-                        error_log('AI Processing Error (Attempt ' . ($retryCount + 1) . '): ' . $error_message);
-                        
-                        if (strpos($error_message, 'timeout') !== false) {
+                            if (is_wp_error($response)) {
+                                $error_message = $response->get_error_message();
+                                error_log('AI Processing Error (Attempt ' . ($retryCount + 1) . '): ' . $error_message);
+                                
+                                if (strpos($error_message, 'timeout') !== false) {
+                                    $retryCount++;
+                                    if ($retryCount < $maxRetries) {
+                                        sleep(2);
+                                        continue;
+                                    }
+                                }
+                                throw new \Exception('Error processing with AI: ' . $error_message);
+                            }
+
+                            $response_code = wp_remote_retrieve_response_code($response);
+                            if ($response_code !== 200) {
+                                $error_message = 'AI API returned non-200 status code: ' . $response_code;
+                                error_log($error_message);
+                                error_log('Response body: ' . wp_remote_retrieve_body($response));
+                                throw new \Exception($error_message);
+                            }
+
+                            $body = json_decode(wp_remote_retrieve_body($response), true);
+                            if (isset($body['choices'][0]['message']['content'])) {
+                                if (!isset($versions[$type])) {
+                                    $versions[$type] = array();
+                                }
+                                $ai_version = json_decode($body['choices'][0]['message']['content'], true);
+                                
+                                if (json_last_error() !== JSON_ERROR_NONE) {
+                                    error_log('AI Response JSON Decode Error: ' . json_last_error_msg());
+                                    error_log('Raw AI Response: ' . $body['choices'][0]['message']['content']);
+                                    throw new \Exception('Invalid JSON response from AI service');
+                                }
+                                
+                                // Merge new content with existing version
+                                if ($type == 'ats') {
+                                    $this->ai_ats_version = $this->mergeResumeData($this->ai_ats_version, $ai_version);
+                                    $versions[$type] = $this->ai_ats_version;
+                                } else if ($type == 'human') {
+                                    $this->ai_human_version = $this->mergeResumeData($this->ai_human_version, $ai_version);
+                                    $versions[$type] = $this->ai_human_version;
+                                }
+                                
+                                $success = true;
+                                error_log("Resume analyze successful for type {$type}: ");
+                            } else {
+                                error_log('AI Response Error: ' . print_r($body, true));
+                                throw new \Exception('Invalid response structure from AI service');
+                            }
+                        } catch (\Exception $e) {
+                            error_log('AI Processing Exception (Attempt ' . ($retryCount + 1) . '): ' . $e->getMessage());
                             $retryCount++;
                             if ($retryCount < $maxRetries) {
                                 sleep(2);
                                 continue;
                             }
+                            throw $e;
                         }
-                        return new \WP_Error('ai_error', 'Error processing with AI: ' . $error_message);
                     }
 
-                    $body = json_decode(wp_remote_retrieve_body($response), true);
-                    if (isset($body['choices'][0]['message']['content'])) {
-                        if (!isset($versions[$type])) {
-                            $versions[$type] = array();
-                        }
-                        $ai_version = json_decode($body['choices'][0]['message']['content'], true);
-                        
-                        // Merge new content with existing version
-                        if ($type == 'ats') {
-                            $this->ai_ats_version = $this->mergeResumeData($this->ai_ats_version, $ai_version);
-                            $versions[$type] = $this->ai_ats_version;
-                        } else if ($type == 'human') {
-                            $this->ai_human_version = $this->mergeResumeData($this->ai_human_version, $ai_version);
-                            $versions[$type] = $this->ai_human_version;
-                        }
-                        
-                        $success = true;
-                        error_log("resume analyze: " . print_r($ai_version, true));
-                    } else {
-                        error_log('AI Response Error: ' . print_r($body, true));
-                        $retryCount++;
-                        if ($retryCount < $maxRetries) {
-                            sleep(2);
-                            continue;
-                        }
-                        return new \WP_Error('ai_error', 'Invalid response from AI service');
+                    if (!$success) {
+                        throw new \Exception('Failed to process page ' . ($pageIndex + 1) . ' after ' . $maxRetries . ' attempts');
                     }
-                }
-
-                if (!$success) {
-                    return new \WP_Error('ai_error', 'Failed to process page ' . ($pageIndex + 1) . ' after ' . $maxRetries . ' attempts');
                 }
             }
-        }
 
-        if (empty($versions)) {
-            return new \WP_Error('ai_error', 'No content was generated by the AI service');
-        }
+            if (empty($versions)) {
+                throw new \Exception('No content was generated by the AI service');
+            }
 
-        return $versions;
+            return $versions;
+
+        } catch (\Exception $e) {
+            error_log('AI Processing Critical Error: ' . $e->getMessage());
+            error_log('AI Processing Stack Trace: ' . $e->getTraceAsString());
+            return new \WP_Error('ai_error', 'Error processing resume with AI: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -496,67 +537,139 @@ class Resume {
     }
 
     private function save_ai_versions($versions, $user_id, $original_id) {
-        $version_ids = array();
-        
-        foreach ($versions as $type => $content) {
-            error_log('Processing version type: ' . $type);
-            error_log('Content: ' . print_r($content, true));
+        try {
+            $version_ids = array();
             
-            // Clean and deduplicate content
-            $content = $this->clean_resume_content($content);
-            
-            // Get template type based on original file
-            $original_file = get_attached_file($original_id);
-            $file_extension = pathinfo($original_file, PATHINFO_EXTENSION);
-            error_log('File extension: ' . $file_extension);
-            
-            // Apply template - use 'html' type and 'default' template
-            $document = $this->template_manager->apply_template('html', 'default', $content);
-            if (is_wp_error($document)) {
-                error_log('Template Error for ' . $type . ': ' . $document->get_error_message());
-                continue;
-            }
-            
-            // Generate file path with better naming convention
-            $upload_dir = wp_upload_dir();
-            $timestamp = date('Ymd_His');
-            $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
-            error_log('Saving file to: ' . $file_path);
-            
-            try {
-                // Save document
-                if ($file_extension === 'pdf') {
-                    $document->Output($file_path, 'F');
-                } else {
-                    $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'Word2007');
-                    $objWriter->save($file_path);
+            foreach ($versions as $type => $content) {
+                error_log('Processing version type: ' . $type);
+                error_log('Content structure: ' . print_r(array_keys($content), true));
+                
+                // Clean and deduplicate content
+                $content = $this->clean_resume_content($content);
+                error_log('Content cleaned successfully');
+                
+                // Get template type based on original file
+                $original_file = get_attached_file($original_id);
+                if (!$original_file) {
+                    error_log('Error: Could not get original file path for attachment ID: ' . $original_id);
+                    throw new \Exception('Could not retrieve original file path');
                 }
                 
-                // Create attachment
-                $attachment_id = $this->create_resume_attachment($file_path, $user_id);
-                if (!is_wp_error($attachment_id)) {
+                $file_extension = pathinfo($original_file, PATHINFO_EXTENSION);
+                error_log('File extension: ' . $file_extension);
+                
+                // Apply template
+                error_log('Attempting to apply template for type: ' . $type);
+                error_log('Template manager class: ' . get_class($this->template_manager));
+                error_log('Template manager methods: ' . print_r(get_class_methods($this->template_manager), true));
+                
+                try {
+                    $document = $this->template_manager->apply_template('html', 'default', $content);
+                    error_log('Template application result type: ' . gettype($document));
+                    
+                    if (is_wp_error($document)) {
+                        error_log('Template Error for ' . $type . ': ' . $document->get_error_message());
+                        throw new \Exception('Template application failed: ' . $document->get_error_message());
+                    }
+                    
+                    if (!$document) {
+                        error_log('Template application returned null or false');
+                        throw new \Exception('Template application returned no document');
+                    }
+                    
+                    error_log('Template applied successfully');
+                } catch (\Exception $e) {
+                    error_log('Template application exception: ' . $e->getMessage());
+                    error_log('Template application stack trace: ' . $e->getTraceAsString());
+                    throw $e;
+                }
+                
+                // Generate file path with better naming convention
+                $upload_dir = wp_upload_dir();
+                if (!isset($upload_dir['path']) || !is_writable($upload_dir['path'])) {
+                    error_log('Error: Upload directory is not writable or does not exist: ' . print_r($upload_dir, true));
+                    throw new \Exception('Upload directory is not writable');
+                }
+                
+                $timestamp = date('Ymd_His');
+                $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
+                error_log('Saving file to: ' . $file_path);
+                
+                try {
+                    // Save document
+                    if ($file_extension === 'pdf') {
+                        error_log('Attempting to save PDF document');
+                        if (!method_exists($document, 'Output')) {
+                            error_log('Error: Document object does not have Output method');
+                            error_log('Document object class: ' . get_class($document));
+                            error_log('Document object methods: ' . print_r(get_class_methods($document), true));
+                            throw new \Exception('Invalid document object for PDF generation');
+                        }
+                        $document->Output($file_path, 'F');
+                        error_log('PDF document saved successfully');
+                    } else if ($file_extension === 'html') {
+                        error_log('Attempting to save HTML document');
+                        if (!is_string($document)) {
+                            error_log('Error: Document is not a string');
+                            throw new \Exception('Invalid document format for HTML generation');
+                        }
+                        if (file_put_contents($file_path, $document) === false) {
+                            error_log('Error: Failed to write HTML file');
+                            throw new \Exception('Failed to write HTML file');
+                        }
+                        error_log('HTML document saved successfully');
+                    } else {
+                        error_log('Attempting to save Word document');
+                        if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
+                            error_log('Error: PhpWord library not found');
+                            throw new \Exception('PhpWord library is not installed');
+                        }
+                        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'Word2007');
+                        $objWriter->save($file_path);
+                        error_log('Word document saved successfully');
+                    }
+                    
+                    // Verify file was created
+                    if (!file_exists($file_path)) {
+                        error_log('Error: File was not created at path: ' . $file_path);
+                        throw new \Exception('Failed to create output file');
+                    }
+                    
+                    // Create attachment
+                    error_log('Creating attachment for file: ' . $file_path);
+                    $attachment_id = $this->create_resume_attachment($file_path, $user_id);
+                    if (is_wp_error($attachment_id)) {
+                        error_log('Failed to create attachment: ' . $attachment_id->get_error_message());
+                        throw new \Exception('Failed to create attachment: ' . $attachment_id->get_error_message());
+                    }
+                    
                     update_post_meta($attachment_id, '_resume_type', 'ai_' . $type);
                     update_post_meta($attachment_id, '_original_resume_id', $original_id);
                     $version_ids[$type] = $attachment_id;
                     
-                    // Log success
                     error_log('Successfully saved ' . $type . ' version with ID: ' . $attachment_id);
-                } else {
-                    error_log('Failed to create attachment for ' . $type . ': ' . $attachment_id->get_error_message());
+                    
+                } catch (\Exception $e) {
+                    error_log('Error saving ' . $type . ' version: ' . $e->getMessage());
+                    error_log('Stack trace: ' . $e->getTraceAsString());
+                    throw $e;
                 }
-            } catch (\Exception $e) {
-                error_log('Error saving ' . $type . ' version: ' . $e->getMessage());
-                continue;
             }
-        }
 
-        if (empty($version_ids)) {
-            error_log('No versions were successfully created');
-        } else {
-            error_log('Created versions: ' . print_r($version_ids, true));
-        }
+            if (empty($version_ids)) {
+                error_log('No versions were successfully created');
+                throw new \Exception('Failed to create any resume versions');
+            } else {
+                error_log('Created versions: ' . print_r($version_ids, true));
+            }
 
-        return $version_ids;
+            return $version_ids;
+            
+        } catch (\Exception $e) {
+            error_log('Critical error in save_ai_versions: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
     }
 
     /**

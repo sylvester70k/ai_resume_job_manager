@@ -100,6 +100,7 @@ class TemplateManager {
     public function apply_template($type, $name, $content) {
         $template = $this->get_template($type, $name);
         if (!$template) {
+            error_log('Template not found: ' . $type . '/' . $name);
             return new \WP_Error('template_not_found', 'Template not found: ' . $type . '/' . $name);
         }
 
@@ -114,6 +115,11 @@ class TemplateManager {
                 'settings' => $template['settings'] ?? []
             ]);
 
+            // Return HTML directly if type is 'html'
+            if ($type === 'html') {
+                return $html;
+            }
+
             // Convert HTML to PDF or DOCX based on type
             if ($type === 'pdf') {
                 return $this->convert_to_pdf($html, $template);
@@ -122,6 +128,8 @@ class TemplateManager {
             }
         } catch (\Exception $e) {
             error_log('Template error: ' . $e->getMessage());
+            error_log('Template path: ' . $template_path);
+            error_log('Template content: ' . print_r($content, true));
             return new \WP_Error('template_error', $e->getMessage());
         }
     }
