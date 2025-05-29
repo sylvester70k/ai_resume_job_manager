@@ -4,54 +4,56 @@ namespace ResumeAIJob\Core;
 class TemplateManager {
     private $template_dir;
     private $templates = [];
+    private $twig;
 
     public function __construct() {
         $this->template_dir = RESUME_AI_JOB_PLUGIN_DIR . 'templates/';
+        $this->initialize_twig();
         $this->load_templates();
     }
 
+    private function initialize_twig() {
+        require_once RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php';
+        
+        $loader = new \Twig\Loader\FilesystemLoader($this->template_dir);
+        $this->twig = new \Twig\Environment($loader, [
+            'cache' => WP_CONTENT_DIR . '/cache/twig',
+            'auto_reload' => true,
+        ]);
+    }
+
     private function load_templates() {
-        // Load PDF templates
-        $pdf_dir = $this->template_dir . 'pdf/';
-        if (is_dir($pdf_dir)) {
-            $this->templates['pdf'] = $this->scan_templates($pdf_dir);
-        }
-
-        // Load DOC templates
-        $doc_dir = $this->template_dir . 'doc/';
-        if (is_dir($doc_dir)) {
-            $this->templates['doc'] = $this->scan_templates($doc_dir);
-        }
-
-        // Load DOCX templates
-        $docx_dir = $this->template_dir . 'docx/';
-        if (is_dir($docx_dir)) {
-            $this->templates['docx'] = $this->scan_templates($docx_dir);
+        // Load HTML templates
+        $html_dir = $this->template_dir . 'html/';
+        if (is_dir($html_dir)) {
+            $this->templates['html'] = $this->scan_templates($html_dir);
         }
     }
 
     private function scan_templates($dir) {
         $templates = [];
-        $files = glob($dir . '*.{php,pdf,doc,docx}', GLOB_BRACE);
+        $files = glob($dir . '*.{html,twig}', GLOB_BRACE);
         
         foreach ($files as $file) {
             $filename = basename($file);
             $name = pathinfo($filename, PATHINFO_FILENAME);
             
-            // Load configuration if it's a PHP file
-            if (pathinfo($filename, PATHINFO_EXTENSION) === 'php') {
-                $config = include $file;
+            // Load configuration if it exists
+            $config_file = $dir . $name . '.config.php';
+            if (file_exists($config_file)) {
+                $config = include $config_file;
                 $templates[$name] = [
                     'name' => $config['name'],
                     'description' => $config['description'],
                     'settings' => $config['settings'],
-                    'type' => pathinfo($dir, PATHINFO_FILENAME)
+                    'type' => 'html',
+                    'template' => $file
                 ];
             } else {
                 $templates[$name] = [
-                    'path' => $file,
                     'name' => $name,
-                    'type' => pathinfo($filename, PATHINFO_EXTENSION)
+                    'type' => 'html',
+                    'template' => $file
                 ];
             }
         }
@@ -79,18 +81,25 @@ class TemplateManager {
             return new \WP_Error('template_not_found', 'Template not found');
         }
 
-        switch ($type) {
-            case 'pdf':
-                return $this->apply_pdf_template($template, $content);
-            case 'doc':
-            case 'docx':
-                return $this->apply_word_template($template, $content);
-            default:
-                return new \WP_Error('invalid_type', 'Invalid template type');
+        try {
+            // Render the template with Twig
+            $html = $this->twig->render(basename($template['template']), [
+                'content' => $content,
+                'settings' => $template['settings'] ?? []
+            ]);
+
+            // Convert HTML to PDF or DOCX based on type
+            if ($type === 'pdf') {
+                return $this->convert_to_pdf($html, $template);
+            } else {
+                return $this->convert_to_docx($html, $template);
+            }
+        } catch (\Exception $e) {
+            return new \WP_Error('template_error', $e->getMessage());
         }
     }
 
-    private function apply_pdf_template($template, $content) {
+    private function convert_to_pdf($html, $template) {
         require_once RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php';
         
         // Create new PDF instance
@@ -107,48 +116,29 @@ class TemplateManager {
             
             // Set margins
             $pdf->SetMargins(
-                $settings['margins']['left'],
-                $settings['margins']['top'],
-                $settings['margins']['right']
+                $settings['margins']['left'] ?? 15,
+                $settings['margins']['top'] ?? 15,
+                $settings['margins']['right'] ?? 15
             );
             
             // Set font
             $pdf->SetFont(
-                $settings['font']['family'],
+                $settings['font']['family'] ?? 'helvetica',
                 '',
-                $settings['font']['size']
+                $settings['font']['size'] ?? 12
             );
         }
         
-        // Add content
-        if (is_array($content)) {
-            foreach ($content as $pageContent) {
-                $pdf->AddPage();
-                
-                // Apply section formatting
-                $sections = explode("\n\n", $pageContent);
-                foreach ($sections as $section) {
-                    if (strpos($section, ':') !== false) {
-                        // This is a header section
-                        list($header, $text) = explode(':', $section, 2);
-                        $pdf->SetFont($settings['font']['family'], 'B', $settings['font']['header_size']);
-                        $pdf->Write(10, trim($header) . ":\n");
-                        $pdf->SetFont($settings['font']['family'], '', $settings['font']['size']);
-                        $pdf->Write(10, trim($text) . "\n\n");
-                    } else {
-                        $pdf->Write(10, $section . "\n\n");
-                    }
-                }
-            }
-        } else {
-            $pdf->AddPage();
-            $pdf->Write(10, $content);
-        }
+        // Add page
+        $pdf->AddPage();
+        
+        // Write HTML content
+        $pdf->writeHTML($html, true, false, true, false, '');
         
         return $pdf;
     }
 
-    private function apply_word_template($template, $content) {
+    private function convert_to_docx($html, $template) {
         require_once RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php';
         
         // Create new Word document
@@ -159,34 +149,16 @@ class TemplateManager {
             $settings = $template['settings'];
             
             // Add styles
-            $phpWord->addTitleStyle(1, $settings['styles']['header']);
-            $phpWord->addTitleStyle(2, $settings['styles']['subheader']);
-            $phpWord->addParagraphStyle('Normal', $settings['styles']['normal']);
+            $phpWord->addTitleStyle(1, $settings['styles']['header'] ?? ['bold' => true, 'size' => 16]);
+            $phpWord->addTitleStyle(2, $settings['styles']['subheader'] ?? ['bold' => true, 'size' => 14]);
+            $phpWord->addParagraphStyle('Normal', $settings['styles']['normal'] ?? ['size' => 12]);
         }
         
         // Add a section
         $section = $phpWord->addSection();
         
-        // Add content
-        if (is_array($content)) {
-            foreach ($content as $pageContent) {
-                // Apply section formatting
-                $sections = explode("\n\n", $pageContent);
-                foreach ($sections as $section) {
-                    if (strpos($section, ':') !== false) {
-                        // This is a header section
-                        list($header, $text) = explode(':', $section, 2);
-                        $section->addTitle(trim($header), 1);
-                        $section->addText(trim($text), 'Normal');
-                    } else {
-                        $section->addText($section, 'Normal');
-                    }
-                }
-                $section->addPageBreak();
-            }
-        } else {
-            $section->addText($content, 'Normal');
-        }
+        // Convert HTML to Word
+        \PhpOffice\PhpWord\Shared\Html::addHtml($section, $html);
         
         return $phpWord;
     }

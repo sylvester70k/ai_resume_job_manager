@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: {{ settings.font.family|default('Arial, sans-serif') }};
+            font-size: {{ settings.font.size|default('12pt') }};
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .name {
+            font-size: 24pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .contact-info {
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 16pt;
+            font-weight: bold;
+            border-bottom: 2px solid #333;
+            margin-bottom: 10px;
+        }
+        .experience-item, .education-item {
+            margin-bottom: 15px;
+        }
+        .item-header {
+            font-weight: bold;
+        }
+        .item-date {
+            color: #666;
+            font-style: italic;
+        }
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .skill-item {
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="name">{{ content.name }}</div>
+        <div class="contact-info">
+            {% if content.email %}{{ content.email }} | {% endif %}
+            {% if content.phone %}{{ content.phone }} | {% endif %}
+            {% if content.address %}{{ content.address }}{% endif %}
+        </div>
+        {% if content.social_links|length > 0 %}
+        <div class="social-links">
+            {% for link in content.social_links %}
+                {{ link }}{% if not loop.last %} | {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if content.summary %}
+    <div class="section">
+        <div class="section-title">Professional Summary</div>
+        <div>{{ content.summary }}</div>
+    </div>
+    {% endif %}
+
+    {% if content.experience|length > 0 %}
+    <div class="section">
+        <div class="section-title">Experience</div>
+        {% for exp in content.experience %}
+        <div class="experience-item">
+            <div class="item-header">{{ exp.title }} at {{ exp.company }}</div>
+            <div class="item-date">{{ exp.start_date }} - {{ exp.end_date }}</div>
+            <div>{{ exp.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if content.education|length > 0 %}
+    <div class="section">
+        <div class="section-title">Education</div>
+        {% for edu in content.education %}
+        <div class="education-item">
+            <div class="item-header">{{ edu.degree }} at {{ edu.school }}</div>
+            <div class="item-date">{{ edu.start_date }} - {{ edu.end_date }}</div>
+            {% if edu.description %}<div>{{ edu.description }}</div>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if content.skills|length > 0 %}
+    <div class="section">
+        <div class="section-title">Skills</div>
+        <div class="skills-list">
+            {% for skill in content.skills %}
+            <div class="skill-item">{{ skill }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if content.projects|length > 0 %}
+    <div class="section">
+        <div class="section-title">Projects</div>
+        {% for project in content.projects %}
+        <div class="experience-item">
+            <div class="item-header">{{ project.name }}</div>
+            <div class="item-date">{{ project.start_date }} - {{ project.end_date }}</div>
+            <div>{{ project.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if content.certifications|length > 0 %}
+    <div class="section">
+        <div class="section-title">Certifications</div>
+        <div class="skills-list">
+            {% for cert in content.certifications %}
+            <div class="skill-item">{{ cert }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if content.languages|length > 0 %}
+    <div class="section">
+        <div class="section-title">Languages</div>
+        <div class="skills-list">
+            {% for lang in content.languages %}
+            <div class="skill-item">{{ lang }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if content.interests|length > 0 %}
+    <div class="section">
+        <div class="section-title">Interests</div>
+        <div class="skills-list">
+            {% for interest in content.interests %}
+            <div class="skill-item">{{ interest }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if content.awards|length > 0 %}
+    <div class="section">
+        <div class="section-title">Awards</div>
+        <div class="skills-list">
+            {% for award in content.awards %}
+            <div class="skill-item">{{ award }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</body>
+</html> 

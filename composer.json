@@ -6,11 +6,12 @@
         "php": ">=7.0",
         "smalot/pdfparser": "^2.5",
         "phpoffice/phpword": "^1.1",
-        "tecnickcom/tcpdf": "^6.6"
+        "tecnickcom/tcpdf": "^6.6",
+        "twig/twig": "^3.11"
     },
     "autoload": {
         "psr-4": {
             "ResumeAIJob\\": "includes/"
         }
     }
-} 
+}
