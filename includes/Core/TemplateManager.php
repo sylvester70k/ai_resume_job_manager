@@ -156,9 +156,31 @@ class TemplateManager {
                 $settings['margins']['right'] ?? 15
             );
             
-            // Set font
+            // Set font - extract primary font name from font family string
+            $font_family = $settings['font']['family'] ?? 'helvetica';
+            // Remove any fallback fonts and quotes
+            $font_family = str_replace(['"', "'"], '', $font_family);
+            $font_family = explode(',', $font_family)[0];
+            $font_family = trim($font_family);
+            
+            // Map common font names to TCPDF supported fonts
+            $font_map = [
+                'arial' => 'helvetica',
+                'times new roman' => 'times',
+                'courier new' => 'courier',
+                'verdana' => 'helvetica',
+                'tahoma' => 'helvetica',
+                'georgia' => 'times',
+                'trebuchet ms' => 'helvetica',
+                'impact' => 'helvetica',
+                'comic sans ms' => 'helvetica'
+            ];
+            
+            $font_family = strtolower($font_family);
+            $font_family = $font_map[$font_family] ?? 'helvetica';
+            
             $pdf->SetFont(
-                $settings['font']['family'] ?? 'helvetica',
+                $font_family,
                 '',
                 $settings['font']['size'] ?? 12
             );
