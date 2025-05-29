@@ -715,217 +715,6 @@ class Resume {
                 $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
                 
                 try {
-                    if ($file_extension === 'pdf') {
-                        $pdf = $this->template_manager->convert_to_pdf($document, $this->template_manager->get_template('html', 'default'));
-                        if (!$pdf || !method_exists($pdf, 'Output')) {
-                            throw new \Exception('Failed to convert HTML to PDF');
-                        }
-                        $pdf->Output($file_path, 'F');
-                    } else if ($file_extension === 'html') {
-                        if (!is_string($document)) {
-                            throw new \Exception('Invalid document format for HTML generation');
-                        }
-                        if (file_put_contents($file_path, $document) === false) {
-                            throw new \Exception('Failed to write HTML file');
-                        }
-                    } else {
-                        if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
-                            throw new \Exception('PhpWord library is not installed');
-                        }
-
-                        // Create new PhpWord instance
-                        $phpWord = new \PhpOffice\PhpWord\PhpWord();
-                        
-                        // Set document properties
-                        $phpWord->getDocInfo()
-                            ->setCreator('Resume AI Job Manager')
-                            ->setCompany('Resume AI')
-                            ->setTitle('Resume - ' . $content['name'])
-                            ->setDescription('Generated Resume')
-                            ->setCategory('Resume')
-                            ->setLastModifiedBy('Resume AI Job Manager')
-                            ->setCreated(time())
-                            ->setModified(time());
-
-                        // Add a section with margins
-                        $section = $phpWord->addSection([
-                            'marginLeft' => 600,
-                            'marginRight' => 600,
-                            'marginTop' => 600,
-                            'marginBottom' => 600
-                        ]);
-
-                        // Set default font
-                        $phpWord->setDefaultFontName('Helvetica');
-                        $phpWord->setDefaultFontSize(12);
-
-                        // Add name
-                        $section->addText($content['name'], [
-                            'bold' => true,
-                            'size' => 24,
-                            'alignment' => 'center'
-                        ]);
-                        $section->addTextBreak(1);
-
-                        // Add contact info
-                        $contactInfo = [];
-                        if (!empty($content['email'])) $contactInfo[] = $content['email'];
-                        if (!empty($content['phone'])) $contactInfo[] = $content['phone'];
-                        if (!empty($content['address'])) $contactInfo[] = $content['address'];
-                        
-                        if (!empty($contactInfo)) {
-                            $section->addText(implode(' | ', $contactInfo), [
-                                'alignment' => 'center'
-                            ]);
-                            $section->addTextBreak(1);
-                        }
-
-                        // Add social links
-                        if (!empty($content['social_links'])) {
-                            $section->addText(implode(' | ', $content['social_links']), [
-                                'alignment' => 'center'
-                            ]);
-                            $section->addTextBreak(1);
-                        }
-
-                        $section->addTextBreak(1);
-
-                        // Add summary
-                        if (!empty($content['summary'])) {
-                            $section->addText('Professional Summary', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-                            $section->addText($content['summary']);
-                            $section->addTextBreak(2);
-                        }
-
-                        // Add experience
-                        if (!empty($content['experience'])) {
-                            $section->addText('Experience', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-
-                            foreach ($content['experience'] as $exp) {
-                                $section->addText($exp['title'] . ' at ' . $exp['company'], ['bold' => true]);
-                                $section->addText($exp['start_date'] . ' - ' . $exp['end_date'], ['italic' => true]);
-                                $section->addText($exp['description']);
-                                $section->addTextBreak(1);
-                            }
-                            $section->addTextBreak(1);
-                        }
-
-                        // Add education
-                        if (!empty($content['education'])) {
-                            $section->addText('Education', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-
-                            foreach ($content['education'] as $edu) {
-                                $section->addText($edu['degree'] . ' at ' . $edu['school'], ['bold' => true]);
-                                $section->addText($edu['start_date'] . ' - ' . $edu['end_date'], ['italic' => true]);
-                                if (!empty($edu['description'])) {
-                                    $section->addText($edu['description']);
-                                }
-                                $section->addTextBreak(1);
-                            }
-                            $section->addTextBreak(1);
-                        }
-
-                        // Add skills
-                        if (!empty($content['skills'])) {
-                            $section->addText('Skills', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-                            $section->addText(implode(' | ', $content['skills']));
-                            $section->addTextBreak(2);
-                        }
-
-                        // Add projects
-                        if (!empty($content['projects'])) {
-                            $section->addText('Projects', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-
-                            foreach ($content['projects'] as $proj) {
-                                $section->addText($proj['name'], ['bold' => true]);
-                                $section->addText($proj['start_date'] . ' - ' . $proj['end_date'], ['italic' => true]);
-                                $section->addText($proj['description']);
-                                $section->addTextBreak(1);
-                            }
-                            $section->addTextBreak(1);
-                        }
-
-                        // Add certifications
-                        if (!empty($content['certifications'])) {
-                            $section->addText('Certifications', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-                            foreach ($content['certifications'] as $cert) {
-                                $section->addText('• ' . $cert);
-                            }
-                            $section->addTextBreak(2);
-                        }
-
-                        // Add languages
-                        if (!empty($content['languages'])) {
-                            $section->addText('Languages', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-                            $section->addText(implode(' | ', $content['languages']));
-                            $section->addTextBreak(2);
-                        }
-
-                        // Add interests
-                        if (!empty($content['interests'])) {
-                            $section->addText('Interests', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-                            $section->addText(implode(' | ', $content['interests']));
-                            $section->addTextBreak(2);
-                        }
-
-                        // Add awards
-                        if (!empty($content['awards'])) {
-                            $section->addText('Awards', [
-                                'bold' => true,
-                                'size' => 16,
-                                'underline' => 'single'
-                            ]);
-                            $section->addTextBreak(1);
-                            foreach ($content['awards'] as $award) {
-                                $section->addText('• ' . $award);
-                            }
-                        }
-                        
-                        // Save the document
-                        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-                        $objWriter->save($file_path);
-                    }
-                    
                     // Create attachment
                     $attachment_id = $this->create_resume_attachment($file_path, $user_id);
                     if (is_wp_error($attachment_id)) {
@@ -940,6 +729,43 @@ class Resume {
                     error_log('Error saving ' . $type . ' version: ' . $e->getMessage());
                     throw $e;
                 }
+            }
+
+            // Store resume IDs in custom table
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
+            
+            // Check if user data exists
+            $existing_data = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $table_name WHERE user_id = %d",
+                $user_id
+            ));
+
+            if ($existing_data) {
+                // Update existing record
+                $wpdb->update(
+                    $table_name,
+                    array(
+                        'original_resume_id' => $original_id,
+                        'ats_resume_id' => $version_ids['ats'],
+                        'human_resume_id' => $version_ids['human']
+                    ),
+                    array('user_id' => $user_id),
+                    array('%d', '%d', '%d'),
+                    array('%d')
+                );
+            } else {
+                // Insert new record
+                $wpdb->insert(
+                    $table_name,
+                    array(
+                        'user_id' => $user_id,
+                        'original_resume_id' => $original_id,
+                        'ats_resume_id' => $version_ids['ats'],
+                        'human_resume_id' => $version_ids['human']
+                    ),
+                    array('%d', '%d', '%d', '%d')
+                );
             }
 
             return $version_ids;
@@ -1074,23 +900,20 @@ class Resume {
         // Verify ownership
         if (get_post_meta($resume_id, '_resume_user_id', true) != $user_id) {
             wp_send_json_error(array('message' => 'Unauthorized'));
+            return;
         }
         
-        // Create resume post
-        $resume_post = array(
-            'post_title' => 'Resume - ' . get_the_author_meta('display_name', $user_id),
-            'post_type' => 'resume_post',
-            'post_status' => 'publish',
-            'post_author' => $user_id
+        // Update published resume in custom table
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
+        
+        $wpdb->update(
+            $table_name,
+            array('published_resume_id' => $resume_id),
+            array('user_id' => $user_id),
+            array('%d'),
+            array('%d')
         );
-        
-        $post_id = wp_insert_post($resume_post);
-        if (is_wp_error($post_id)) {
-            wp_send_json_error(array('message' => 'Failed to publish resume'));
-        }
-        
-        // Link resume file
-        update_post_meta($post_id, '_resume_file_id', $resume_id);
         
         wp_send_json_success(array('message' => 'Resume published successfully'));
     }
