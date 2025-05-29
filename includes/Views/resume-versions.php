@@ -27,13 +27,6 @@ $ats_resume = $resume_data ? get_post($resume_data->ats_resume_id) : null;
 $human_resume = $resume_data ? get_post($resume_data->human_resume_id) : null;
 $published_resume = $resume_data ? get_post($resume_data->published_resume_id) : null;
 
-echo "ATS Resume: ";
-print_r($ats_resume);
-echo "\nOriginal Resume: ";
-print_r($original_resume);
-echo "\nHuman Resume: ";
-print_r($human_resume);
-
 // Function to check if a resume is published
 function is_resume_published($resume, $published_resume) {
     return $resume && $published_resume && $resume->ID === $published_resume->ID;
@@ -41,7 +34,34 @@ function is_resume_published($resume, $published_resume) {
 
 // Helper to get attachment URL safely
 function get_resume_url($resume) {
-    return ($resume && get_post_type($resume) === 'attachment') ? wp_get_attachment_url($resume->ID) : false;
+    if (!$resume) {
+        error_log('Resume object is null');
+        return false;
+    }
+    if (get_post_type($resume) !== 'attachment') {
+        error_log('Resume is not an attachment. Post type: ' . get_post_type($resume));
+        return false;
+    }
+    $url = wp_get_attachment_url($resume->ID);
+    if (!$url) {
+        error_log('Failed to get attachment URL for resume ID: ' . $resume->ID);
+        return false;
+    }
+    
+    // Check if file exists
+    $file_path = get_attached_file($resume->ID);
+    if (!file_exists($file_path)) {
+        error_log('File does not exist at path: ' . $file_path);
+        return false;
+    }
+    
+    // Check file permissions
+    if (!is_readable($file_path)) {
+        error_log('File is not readable: ' . $file_path);
+        return false;
+    }
+    
+    return $url;
 }
 ?>
 
@@ -74,13 +94,14 @@ function get_resume_url($resume) {
                     'resume' => $human_resume,
                 ],
             ];
-            print_r($resumes);
             foreach ($resumes as $item):
                 $resume = $item['resume'];
                 $resume_url = get_resume_url($resume);
                 $is_published = is_resume_published($resume, $published_resume);
-                echo "Resume URL: ";
-                print_r($resume_url);
+                error_log('Processing resume: ' . $item['label']);
+                error_log('Resume object: ' . print_r($resume, true));
+                error_log('Resume URL: ' . ($resume_url ? $resume_url : 'null'));
+                error_log('Is published: ' . ($is_published ? 'true' : 'false'));
             ?>
             <div class="w-full flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-transform hover:scale-[1.03] animate-fade-in">
                 <div class="flex-1 flex flex-col p-6">
