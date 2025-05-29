@@ -160,7 +160,7 @@ class Position {
         }
 
         ob_start();
-        include plugin_dir_path(dirname(__FILE__)) . 'Views/job-listings.php';
+        require_once RESUME_AI_JOB_PLUGIN_DIR . 'includes/Views/job-listings.php';
         return ob_get_clean();
     }
 }
