@@ -7,18 +7,28 @@ class TemplateManager {
     private $twig;
 
     public function __construct() {
+        // Use plugin's templates directory
         $this->template_dir = RESUME_AI_JOB_PLUGIN_DIR . 'templates/';
-        $this->initialize_twig();
+        
+        // Create cache directory in WordPress uploads
+        $upload_dir = wp_upload_dir();
+        $cache_dir = $upload_dir['basedir'] . '/resume-ai-cache';
+        if (!file_exists($cache_dir)) {
+            wp_mkdir_p($cache_dir);
+        }
+        
+        $this->initialize_twig($cache_dir);
         $this->load_templates();
     }
 
-    private function initialize_twig() {
+    private function initialize_twig($cache_dir) {
         require_once RESUME_AI_JOB_PLUGIN_DIR . 'vendor/autoload.php';
         
         $loader = new \Twig\Loader\FilesystemLoader($this->template_dir);
         $this->twig = new \Twig\Environment($loader, [
-            'cache' => WP_CONTENT_DIR . '/cache/twig',
+            'cache' => $cache_dir,
             'auto_reload' => true,
+            'debug' => WP_DEBUG
         ]);
     }
 
@@ -78,7 +88,7 @@ class TemplateManager {
     public function apply_template($type, $name, $content) {
         $template = $this->get_template($type, $name);
         if (!$template) {
-            return new \WP_Error('template_not_found', 'Template not found');
+            return new \WP_Error('template_not_found', 'Template not found: ' . $type . '/' . $name);
         }
 
         try {

@@ -72,10 +72,21 @@ function resume_ai_job_init() {
 add_action('plugins_loaded', 'resume_ai_job_init');
 
 // Activation hook
-register_activation_hook(__FILE__, function() {
-    $activator = new ResumeAIJob\Core\Activator();
-    $activator->activate();
-});
+register_activation_hook(__FILE__, 'resume_ai_job_activate');
+function resume_ai_job_activate() {
+    // Create template directories
+    $template_dir = RESUME_AI_JOB_PLUGIN_DIR . 'templates/html';
+    if (!file_exists($template_dir)) {
+        wp_mkdir_p($template_dir);
+    }
+    
+    // Create cache directory in uploads
+    $upload_dir = wp_upload_dir();
+    $cache_dir = $upload_dir['basedir'] . '/resume-ai-cache';
+    if (!file_exists($cache_dir)) {
+        wp_mkdir_p($cache_dir);
+    }
+}
 
 // Deactivation hook
 register_deactivation_hook(__FILE__, function() {
