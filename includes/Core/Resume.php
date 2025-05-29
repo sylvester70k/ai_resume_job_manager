@@ -1,7 +1,8 @@
 <?php
 namespace ResumeAIJob\Core;
 
-class Resume {
+class Resume
+{
     private $ai_api_key;
     private $ai_api_url = 'https://api.openai.com/v1/chat/completions'; // Example AI API endpoint
     private $template_manager;
@@ -38,22 +39,23 @@ class Resume {
         'awards' => []
     ];
 
-    public function init() {
+    public function init()
+    {
         // Add shortcode for resume upload form
         add_shortcode('resume_upload_form', array($this, 'render_resume_upload_form'));
         add_shortcode('resume_versions', array($this, 'render_resume_versions'));
-        
+
         // Add AJAX handlers
         add_action('wp_ajax_resume_upload', array($this, 'handle_resume_upload'));
         add_action('wp_ajax_get_resume_versions', array($this, 'get_resume_versions'));
         add_action('wp_ajax_publish_resume', array($this, 'publish_resume'));
-        
+
         // Add login redirect
         add_filter('login_redirect', array($this, 'handle_login_redirect'), 10, 3);
-        
+
         // Get AI API key from options
         $this->ai_api_key = get_option('resume_ai_job_api_key');
-        
+
         // Initialize template manager
         $this->template_manager = new TemplateManager();
     }
@@ -61,7 +63,8 @@ class Resume {
     /**
      * Handle login redirect
      */
-    public function handle_login_redirect($redirect_to, $requested_redirect_to, $user) {
+    public function handle_login_redirect($redirect_to, $requested_redirect_to, $user)
+    {
         if (!is_wp_error($user) && $user->has_cap('resume_user')) {
             // Get the resume upload page URL
             $upload_page = get_option('resume_ai_job_upload_page');
@@ -75,7 +78,8 @@ class Resume {
     /**
      * Render resume upload form
      */
-    public function render_resume_upload_form() {
+    public function render_resume_upload_form()
+    {
         // Check if user is logged in
         if (!is_user_logged_in()) {
             return '<div class="resume-ai-job-error">You must be logged in to upload resumes.</div>
@@ -103,7 +107,8 @@ class Resume {
     /**
      * Render resume versions view
      */
-    public function render_resume_versions() {
+    public function render_resume_versions()
+    {
         // Check if user is logged in
         if (!is_user_logged_in()) {
             return '<div class="resume-ai-job-error">You must be logged in to view your resumes.</div>
@@ -128,7 +133,8 @@ class Resume {
         return ob_get_clean();
     }
 
-    public function handle_resume_upload() {
+    public function handle_resume_upload()
+    {
         try {
             check_ajax_referer('resume_upload_nonce', 'resume_upload_nonce');
 
@@ -215,14 +221,15 @@ class Resume {
         }
     }
 
-    private function validate_resume_file($file) {
+    private function validate_resume_file($file)
+    {
         // Check file type
         $allowed_types = array(
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/msword'
         );
-        
+
         if (!in_array($file['type'], $allowed_types)) {
             return new \WP_Error('invalid_type', 'Only PDF, DOC, and DOCX files are allowed');
         }
@@ -240,7 +247,8 @@ class Resume {
         return true;
     }
 
-    private function create_resume_attachment($file_path, $user_id) {
+    private function create_resume_attachment($file_path, $user_id)
+    {
         $file_name = basename($file_path);
         $file_type = wp_check_filetype($file_name, null);
 
@@ -271,9 +279,10 @@ class Resume {
         return $attachment_id;
     }
 
-    private function extract_resume_text($file_path) {
+    private function extract_resume_text($file_path)
+    {
         $file_type = wp_check_filetype(basename($file_path), null);
-        
+
         if ($file_type['type'] === 'application/pdf') {
             return $this->extract_text_from_pdf($file_path);
         } else if ($file_type['type'] === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -281,31 +290,33 @@ class Resume {
         } else if ($file_type['type'] === 'application/msword') {
             return $this->extract_text_from_doc($file_path);
         }
-        
+
         return new \WP_Error('invalid_type', 'Unsupported file type');
     }
 
-    private function extract_text_from_pdf($file_path) {
+    private function extract_text_from_pdf($file_path)
+    {
         try {
             if (!class_exists('\\Smalot\\PdfParser\\Parser')) {
                 return new \WP_Error('missing_library', 'PDF Parser library is not installed.');
             }
 
             $detailedElements = extractDetailedPdfElements($file_path);
-            
+
             if (is_wp_error($detailedElements)) {
                 return $detailedElements;
             }
-            
+
             // Return the detailed elements structure instead of combining text
             return $detailedElements;
-            
+
         } catch (\Exception $e) {
             return new \WP_Error('pdf_error', 'Error processing PDF: ' . $e->getMessage());
         }
     }
 
-    private function extract_text_from_docx($file_path) {
+    private function extract_text_from_docx($file_path)
+    {
         try {
             // Check if the PhpWord library is available
             if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
@@ -314,7 +325,7 @@ class Resume {
 
             // Load the document
             $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
-            
+
             $result = [
                 'metadata' => [
                     'title' => $phpWord->getDocInfo()->getTitle() ?: '',
@@ -384,8 +395,7 @@ class Resume {
                             'y' => $yPosition
                         ];
                         $yPosition += 20; // Approximate line height
-                    } 
-                    elseif ($element instanceof \PhpOffice\PhpWord\Element\Text) {
+                    } elseif ($element instanceof \PhpOffice\PhpWord\Element\Text) {
                         $elementData['content'] = $element->getText();
                         $pageData['text'] .= $element->getText() . "\n";
                         $pageData['textWithPosition'][] = [
@@ -404,8 +414,7 @@ class Resume {
                             ];
                         }
                         $yPosition += 20;
-                    }
-                    elseif ($element instanceof \PhpOffice\PhpWord\Element\ListItem) {
+                    } elseif ($element instanceof \PhpOffice\PhpWord\Element\ListItem) {
                         $elementData['content'] = "• " . $element->getText();
                         $pageData['text'] .= "• " . $element->getText() . "\n";
                         $pageData['textWithPosition'][] = [
@@ -413,8 +422,7 @@ class Resume {
                             'y' => $yPosition
                         ];
                         $yPosition += 20;
-                    }
-                    elseif ($element instanceof \PhpOffice\PhpWord\Element\Table) {
+                    } elseif ($element instanceof \PhpOffice\PhpWord\Element\Table) {
                         $tableContent = '';
                         foreach ($element->getRows() as $row) {
                             $rowContent = '';
@@ -451,8 +459,7 @@ class Resume {
                             'y' => $yPosition
                         ];
                         $yPosition += 20 * count($element->getRows());
-                    }
-                    elseif ($element instanceof \PhpOffice\PhpWord\Element\Image) {
+                    } elseif ($element instanceof \PhpOffice\PhpWord\Element\Image) {
                         // Handle standalone images
                         $result['images'][] = [
                             'type' => $element->getImageType() ?: '',
@@ -481,7 +488,8 @@ class Resume {
         }
     }
 
-    private function extract_text_from_doc($file_path) {
+    private function extract_text_from_doc($file_path)
+    {
         try {
             // Check if the PhpWord library is available
             if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
@@ -492,20 +500,20 @@ class Resume {
             try {
                 // Load the DOC file
                 $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
-                
+
                 // Create a temporary DOCX file
                 $temp_docx = wp_upload_dir()['path'] . '/temp_' . time() . '.docx';
-                
+
                 // Save as DOCX
                 $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
                 $objWriter->save($temp_docx);
-                
+
                 // Extract text from the converted DOCX
                 $result = $this->extract_text_from_docx($temp_docx);
-                
+
                 // Clean up temporary file
                 @unlink($temp_docx);
-                
+
                 return $result;
             } catch (\Exception $e) {
                 return new \WP_Error('doc_error', 'Error converting DOC to DOCX: ' . $e->getMessage());
@@ -515,7 +523,8 @@ class Resume {
         }
     }
 
-    private function process_resume_with_ai($detailedElements) {
+    private function process_resume_with_ai($detailedElements)
+    {
         try {
             if (empty($this->ai_api_key)) {
                 error_log('AI Processing Error: API key not configured');
@@ -533,11 +542,11 @@ class Resume {
             // Process each page separately
             foreach ($detailedElements['pages'] as $pageIndex => $page) {
                 $pageText = $page['text'];
-                
+
                 // Process each version type
                 foreach ($prompts as $type => $basePrompt) {
                     $prompt = $basePrompt . '<resume>' . $pageText . '</resume>';
-                    
+
                     // Add timeout and retry logic
                     $maxRetries = 3;
                     $retryCount = 0;
@@ -583,7 +592,7 @@ class Resume {
                         'interests': ['interest1', 'interest2', 'interest3'],
                         'awards': ['award1', 'award2', 'award3']
                     }";
-                    
+
                     while (!$success && $retryCount < $maxRetries) {
                         try {
                             $response = wp_remote_post($this->ai_api_url, array(
@@ -609,7 +618,7 @@ class Resume {
                             if (is_wp_error($response)) {
                                 $error_message = $response->get_error_message();
                                 error_log('AI Processing Error (Attempt ' . ($retryCount + 1) . '): ' . $error_message);
-                                
+
                                 if (strpos($error_message, 'timeout') !== false) {
                                     $retryCount++;
                                     if ($retryCount < $maxRetries) {
@@ -634,13 +643,13 @@ class Resume {
                                     $versions[$type] = array();
                                 }
                                 $ai_version = json_decode($body['choices'][0]['message']['content'], true);
-                                
+
                                 if (json_last_error() !== JSON_ERROR_NONE) {
                                     error_log('AI Response JSON Decode Error: ' . json_last_error_msg());
                                     error_log('Raw AI Response: ' . $body['choices'][0]['message']['content']);
                                     throw new \Exception('Invalid JSON response from AI service');
                                 }
-                                
+
                                 // Merge new content with existing version
                                 if ($type == 'ats') {
                                     $this->ai_ats_version = $this->mergeResumeData($this->ai_ats_version, $ai_version);
@@ -649,7 +658,7 @@ class Resume {
                                     $this->ai_human_version = $this->mergeResumeData($this->ai_human_version, $ai_version);
                                     $versions[$type] = $this->ai_human_version;
                                 }
-                                
+
                                 $success = true;
                                 error_log("Resume analyze successful for type {$type}: ");
                             } else {
@@ -689,9 +698,10 @@ class Resume {
     /**
      * Merge new resume data with existing data
      */
-    private function mergeResumeData($existing, $new) {
+    private function mergeResumeData($existing, $new)
+    {
         $merged = $existing;
-        
+
         // Merge basic fields if they're empty in existing
         $basicFields = ['name', 'email', 'phone', 'address', 'summary'];
         foreach ($basicFields as $field) {
@@ -699,7 +709,7 @@ class Resume {
                 $merged[$field] = $new[$field];
             }
         }
-        
+
         // Merge arrays by appending new items
         $arrayFields = ['social_links', 'skills', 'certifications', 'languages', 'interests', 'awards'];
         foreach ($arrayFields as $field) {
@@ -707,7 +717,7 @@ class Resume {
                 $merged[$field] = array_unique(array_merge($existing[$field], $new[$field]));
             }
         }
-        
+
         // Merge complex arrays (experience, education, projects)
         $complexFields = ['experience', 'education', 'projects'];
         foreach ($complexFields as $field) {
@@ -715,50 +725,264 @@ class Resume {
                 $merged[$field] = array_merge($existing[$field], $new[$field]);
             }
         }
-        
+
         return $merged;
     }
 
-    private function save_ai_versions($versions, $user_id, $original_id) {
+    private function save_ai_versions($versions, $user_id, $original_id)
+    {
         try {
             $version_ids = array();
-            
+
             foreach ($versions as $type => $content) {
                 error_log('Processing version type: ' . $type);
-                
+
                 // Clean and deduplicate content
                 $content = $this->clean_resume_content($content);
-                
+
                 // Get template type based on original file
                 $original_file = get_attached_file($original_id);
                 if (!$original_file) {
                     throw new \Exception('Could not retrieve original file path');
                 }
-                
+
                 $file_extension = pathinfo($original_file, PATHINFO_EXTENSION);
-                
+
                 // Apply template
                 $document = $this->template_manager->apply_template('html', 'default', $content);
                 if (is_wp_error($document)) {
                     throw new \Exception('Template application failed: ' . $document->get_error_message());
                 }
-                
+
                 // Generate file path
                 $upload_dir = wp_upload_dir();
                 $timestamp = date('Ymd_His');
                 $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
-                
+
                 try {
+                    if ($file_extension === 'pdf') {
+                        $pdf = $this->template_manager->convert_to_pdf($document, $this->template_manager->get_template('html', 'default'));
+                        if (!$pdf || !method_exists($pdf, 'Output')) {
+                            throw new \Exception('Failed to convert HTML to PDF');
+                        }
+                        $pdf->Output($file_path, 'F');
+                    } else if ($file_extension === 'html') {
+                        if (!is_string($document)) {
+                            throw new \Exception('Invalid document format for HTML generation');
+                        }
+                        if (file_put_contents($file_path, $document) === false) {
+                            throw new \Exception('Failed to write HTML file');
+                        }
+                    } else {
+                        if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
+                            throw new \Exception('PhpWord library is not installed');
+                        }
+
+                        // Create new PhpWord instance
+                        $phpWord = new \PhpOffice\PhpWord\PhpWord();
+
+                        // Set document properties
+                        $phpWord->getDocInfo()
+                            ->setCreator('Resume AI Job Manager')
+                            ->setCompany('Resume AI')
+                            ->setTitle('Resume - ' . $content['name'])
+                            ->setDescription('Generated Resume')
+                            ->setCategory('Resume')
+                            ->setLastModifiedBy('Resume AI Job Manager')
+                            ->setCreated(time())
+                            ->setModified(time());
+
+                        // Add a section with margins
+                        $section = $phpWord->addSection([
+                            'marginLeft' => 600,
+                            'marginRight' => 600,
+                            'marginTop' => 600,
+                            'marginBottom' => 600
+                        ]);
+
+                        // Set default font
+                        $phpWord->setDefaultFontName('Helvetica');
+                        $phpWord->setDefaultFontSize(12);
+
+                        // Add name
+                        $section->addText($content['name'], [
+                            'bold' => true,
+                            'size' => 24,
+                            'alignment' => 'center'
+                        ]);
+                        $section->addTextBreak(1);
+
+                        // Add contact info
+                        $contactInfo = [];
+                        if (!empty($content['email']))
+                            $contactInfo[] = $content['email'];
+                        if (!empty($content['phone']))
+                            $contactInfo[] = $content['phone'];
+                        if (!empty($content['address']))
+                            $contactInfo[] = $content['address'];
+
+                        if (!empty($contactInfo)) {
+                            $section->addText(implode(' | ', $contactInfo), [
+                                'alignment' => 'center'
+                            ]);
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add social links
+                        if (!empty($content['social_links'])) {
+                            $section->addText(implode(' | ', $content['social_links']), [
+                                'alignment' => 'center'
+                            ]);
+                            $section->addTextBreak(1);
+                        }
+
+                        $section->addTextBreak(1);
+
+                        // Add summary
+                        if (!empty($content['summary'])) {
+                            $section->addText('Professional Summary', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText($content['summary']);
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add experience
+                        if (!empty($content['experience'])) {
+                            $section->addText('Experience', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+
+                            foreach ($content['experience'] as $exp) {
+                                $section->addText($exp['title'] . ' at ' . $exp['company'], ['bold' => true]);
+                                $section->addText($exp['start_date'] . ' - ' . $exp['end_date'], ['italic' => true]);
+                                $section->addText($exp['description']);
+                                $section->addTextBreak(1);
+                            }
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add education
+                        if (!empty($content['education'])) {
+                            $section->addText('Education', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+
+                            foreach ($content['education'] as $edu) {
+                                $section->addText($edu['degree'] . ' at ' . $edu['school'], ['bold' => true]);
+                                $section->addText($edu['start_date'] . ' - ' . $edu['end_date'], ['italic' => true]);
+                                if (!empty($edu['description'])) {
+                                    $section->addText($edu['description']);
+                                }
+                                $section->addTextBreak(1);
+                            }
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add skills
+                        if (!empty($content['skills'])) {
+                            $section->addText('Skills', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText(implode(' | ', $content['skills']));
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add projects
+                        if (!empty($content['projects'])) {
+                            $section->addText('Projects', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+
+                            foreach ($content['projects'] as $proj) {
+                                $section->addText($proj['name'], ['bold' => true]);
+                                $section->addText($proj['start_date'] . ' - ' . $proj['end_date'], ['italic' => true]);
+                                $section->addText($proj['description']);
+                                $section->addTextBreak(1);
+                            }
+                            $section->addTextBreak(1);
+                        }
+
+                        // Add certifications
+                        if (!empty($content['certifications'])) {
+                            $section->addText('Certifications', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            foreach ($content['certifications'] as $cert) {
+                                $section->addText('• ' . $cert);
+                            }
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add languages
+                        if (!empty($content['languages'])) {
+                            $section->addText('Languages', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText(implode(' | ', $content['languages']));
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add interests
+                        if (!empty($content['interests'])) {
+                            $section->addText('Interests', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            $section->addText(implode(' | ', $content['interests']));
+                            $section->addTextBreak(2);
+                        }
+
+                        // Add awards
+                        if (!empty($content['awards'])) {
+                            $section->addText('Awards', [
+                                'bold' => true,
+                                'size' => 16,
+                                'underline' => 'single'
+                            ]);
+                            $section->addTextBreak(1);
+                            foreach ($content['awards'] as $award) {
+                                $section->addText('• ' . $award);
+                            }
+                        }
+
+                        // Save the document
+                        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+                        $objWriter->save($file_path);
+                    }
                     // Create attachment
                     $attachment_id = $this->create_resume_attachment($file_path, $user_id);
                     if (is_wp_error($attachment_id)) {
                         throw new \Exception('Failed to create attachment: ' . $attachment_id->get_error_message());
                     }
-                    
+
                     update_post_meta($attachment_id, '_resume_type', 'ai_' . $type);
                     update_post_meta($attachment_id, '_original_resume_id', $original_id);
                     $version_ids[$type] = $attachment_id;
-                    
+
                 } catch (\Exception $e) {
                     error_log('Error saving ' . $type . ' version: ' . $e->getMessage());
                     throw $e;
@@ -768,7 +992,7 @@ class Resume {
             // Store resume IDs in custom table
             global $wpdb;
             $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
-            
+
             // Check if user data exists
             $existing_data = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM $table_name WHERE user_id = %d AND original_resume_id = %d",
@@ -806,7 +1030,7 @@ class Resume {
             }
 
             return $version_ids;
-            
+
         } catch (\Exception $e) {
             error_log('Critical error in save_ai_versions: ' . $e->getMessage());
             throw $e;
@@ -816,7 +1040,8 @@ class Resume {
     /**
      * Clean and deduplicate resume content
      */
-    private function clean_resume_content($content) {
+    private function clean_resume_content($content)
+    {
         // Clean basic fields
         $basic_fields = ['name', 'email', 'phone', 'address', 'summary'];
         foreach ($basic_fields as $field) {
@@ -841,22 +1066,22 @@ class Resume {
         if (isset($content['experience']) && is_array($content['experience'])) {
             $unique_experiences = [];
             $seen = [];
-            
+
             foreach ($content['experience'] as $exp) {
                 // Skip if missing required fields
                 if (empty($exp['company']) || empty($exp['title'])) {
                     continue;
                 }
-                
+
                 // Create unique key
                 $key = $exp['company'] . '|' . $exp['title'] . '|' . $exp['start_date'] . '|' . $exp['end_date'];
-                
+
                 if (!isset($seen[$key])) {
                     $seen[$key] = true;
                     $unique_experiences[] = $exp;
                 }
             }
-            
+
             $content['experience'] = $unique_experiences;
         }
 
@@ -864,22 +1089,22 @@ class Resume {
         if (isset($content['education']) && is_array($content['education'])) {
             $unique_education = [];
             $seen = [];
-            
+
             foreach ($content['education'] as $edu) {
                 // Skip if missing required fields
                 if (empty($edu['school']) || empty($edu['degree'])) {
                     continue;
                 }
-                
+
                 // Create unique key
                 $key = $edu['school'] . '|' . $edu['degree'] . '|' . $edu['start_date'] . '|' . $edu['end_date'];
-                
+
                 if (!isset($seen[$key])) {
                     $seen[$key] = true;
                     $unique_education[] = $edu;
                 }
             }
-            
+
             $content['education'] = $unique_education;
         }
 
@@ -887,38 +1112,40 @@ class Resume {
         if (isset($content['projects']) && is_array($content['projects'])) {
             $unique_projects = [];
             $seen = [];
-            
+
             foreach ($content['projects'] as $proj) {
                 // Skip if missing required fields
                 if (empty($proj['name'])) {
                     continue;
                 }
-                
+
                 // Create unique key
                 $key = $proj['name'] . '|' . $proj['start_date'] . '|' . $proj['end_date'];
-                
+
                 if (!isset($seen[$key])) {
                     $seen[$key] = true;
                     $unique_projects[] = $proj;
                 }
             }
-            
+
             $content['projects'] = $unique_projects;
         }
 
         return $content;
     }
 
-    public function get_available_templates() {
+    public function get_available_templates()
+    {
         return $this->template_manager->get_templates();
     }
 
-    public function get_resume_versions() {
+    public function get_resume_versions()
+    {
         check_ajax_referer('resume_upload_nonce', 'nonce');
-        
+
         $user_id = get_current_user_id();
         $original_id = intval($_POST['original_id']);
-        
+
         // Get versions from custom table
         global $wpdb;
         $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
@@ -927,32 +1154,33 @@ class Resume {
             $user_id,
             $original_id
         ));
-        
+
         $versions = array(
             'original' => $original_id,
             'ats' => $resume_data ? $resume_data->ats_resume_id : null,
             'human' => $resume_data ? $resume_data->human_resume_id : null
         );
-        
+
         wp_send_json_success($versions);
     }
 
-    public function publish_resume() {
+    public function publish_resume()
+    {
         check_ajax_referer('resume_upload_nonce', 'nonce');
-        
+
         $user_id = get_current_user_id();
         $resume_id = intval($_POST['resume_id']);
-        
+
         // Verify ownership
         if (get_post_meta($resume_id, '_resume_user_id', true) != $user_id) {
             wp_send_json_error(array('message' => 'Unauthorized'));
             return;
         }
-        
+
         // Update published resume in custom table
         global $wpdb;
         $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
-        
+
         $wpdb->update(
             $table_name,
             array('published_resume_id' => $resume_id),
@@ -960,23 +1188,24 @@ class Resume {
             array('%d'),
             array('%d')
         );
-        
+
         wp_send_json_success(array('message' => 'Resume published successfully'));
     }
 }
 
-function extractDetailedPdfElements($file_path) {
+function extractDetailedPdfElements($file_path)
+{
     try {
         $parser = new \Smalot\PdfParser\Parser();
         $pdf = $parser->parseFile($file_path);
-        
+
         $result = [
             'metadata' => $pdf->getDetails(),
             'pages' => [],
             'fonts' => [],
             'images' => []
         ];
-        
+
         // Get all pages
         $pages = $pdf->getPages();
         foreach ($pages as $index => $page) {
@@ -986,15 +1215,15 @@ function extractDetailedPdfElements($file_path) {
                 'textWithPosition' => $page->getTextArray(),
                 'elements' => []
             ];
-            
+
             // Get page elements
             if (method_exists($page, 'getElements')) {
                 $pageData['elements'] = $page->getElements();
             }
-            
+
             $result['pages'][] = $pageData;
         }
-        
+
         // Get fonts - Fixed to handle missing methods
         $fonts = $pdf->getFonts();
         foreach ($fonts as $font) {
@@ -1002,20 +1231,20 @@ function extractDetailedPdfElements($file_path) {
                 'name' => method_exists($font, 'getName') ? $font->getName() : 'Unknown',
                 'type' => method_exists($font, 'getType') ? $font->getType() : 'Unknown'
             ];
-            
+
             // Only add encoding if the method exists
             if (method_exists($font, 'getEncoding')) {
                 $fontData['encoding'] = $font->getEncoding();
             }
-            
+
             $result['fonts'][] = $fontData;
         }
-        
+
         // Get images
         $images = $pdf->getObjectsByType('XObject', 'Image');
         foreach ($images as $image) {
             $imageData = [];
-            
+
             // Only add properties if methods exist
             if (method_exists($image, 'getWidth')) {
                 $imageData['width'] = $image->getWidth();
@@ -1026,14 +1255,14 @@ function extractDetailedPdfElements($file_path) {
             if (method_exists($image, 'getType')) {
                 $imageData['type'] = $image->getType();
             }
-            
+
             if (!empty($imageData)) {
                 $result['images'][] = $imageData;
             }
         }
-        
+
         return $result;
-        
+
     } catch (\Exception $e) {
         return new \WP_Error('pdf_error', 'Error processing PDF: ' . $e->getMessage());
     }
