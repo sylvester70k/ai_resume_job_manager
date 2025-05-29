@@ -294,18 +294,8 @@ class Resume {
                     'modified' => $phpWord->getDocInfo()->getModified()
                 ],
                 'pages' => [],
-                'styles' => [],
                 'images' => []
             ];
-
-            // Extract styles
-            foreach ($phpWord->getStyles() as $styleName => $style) {
-                $result['styles'][$styleName] = [
-                    'name' => $styleName,
-                    'type' => $style->getStyleType(),
-                    'properties' => $style->getStyleValues()
-                ];
-            }
 
             // Process each section as a "page"
             $pageIndex = 0;
@@ -332,7 +322,14 @@ class Resume {
                             if ($textElement instanceof \PhpOffice\PhpWord\Element\Text) {
                                 $textContent .= $textElement->getText();
                                 if ($textElement->getFontStyle()) {
-                                    $elementData['style'] = $textElement->getFontStyle()->getStyleValues();
+                                    $elementData['style'] = [
+                                        'name' => $textElement->getFontStyle()->getStyleName(),
+                                        'size' => $textElement->getFontStyle()->getSize(),
+                                        'bold' => $textElement->getFontStyle()->isBold(),
+                                        'italic' => $textElement->getFontStyle()->isItalic(),
+                                        'underline' => $textElement->getFontStyle()->getUnderline(),
+                                        'color' => $textElement->getFontStyle()->getColor()
+                                    ];
                                 }
                             }
                         }
@@ -352,7 +349,14 @@ class Resume {
                             'y' => $yPosition
                         ];
                         if ($element->getFontStyle()) {
-                            $elementData['style'] = $element->getFontStyle()->getStyleValues();
+                            $elementData['style'] = [
+                                'name' => $element->getFontStyle()->getStyleName(),
+                                'size' => $element->getFontStyle()->getSize(),
+                                'bold' => $element->getFontStyle()->isBold(),
+                                'italic' => $element->getFontStyle()->isItalic(),
+                                'underline' => $element->getFontStyle()->getUnderline(),
+                                'color' => $element->getFontStyle()->getColor()
+                            ];
                         }
                         $yPosition += 20;
                     }
