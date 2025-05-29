@@ -104,11 +104,12 @@ class TemplateManager {
         }
 
         try {
-            // Render the template with Twig
-            $template_file = basename($template['template']);
-            error_log('Rendering template file: ' . $template_file);
+            // Get the template file path relative to the template directory
+            $template_path = str_replace($this->template_dir, '', $template['template']);
+            error_log('Rendering template: ' . $template_path);
             
-            $html = $this->twig->render($template_file, [
+            // Render the template with Twig
+            $html = $this->twig->render($template_path, [
                 'content' => $content,
                 'settings' => $template['settings'] ?? []
             ]);
