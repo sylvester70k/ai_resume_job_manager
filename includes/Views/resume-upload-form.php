@@ -203,6 +203,10 @@ jQuery(document).ready(function($) {
     form.on('submit', function(e) {
         e.preventDefault();
         
+        // Show loading state and disable button
+        loadingSpinner.removeClass('hidden');
+        submitButton.prop('disabled', true);
+        
         var formData = new FormData(this);
         formData.append('action', 'resume_upload');
         formData.append('resume_upload_nonce', resume_ai_job.nonce);
@@ -215,16 +219,21 @@ jQuery(document).ready(function($) {
             contentType: false,
             success: function(response) {
                 if (response.success) {
-                    alert('Resume uploaded and processed successfully!');
+                    showSuccess('Resume uploaded and processed successfully!');
                     if (response.data.redirect_url) {
                         window.location.href = response.data.redirect_url;
                     }
                 } else {
-                    alert('Error: ' + response.data.message);
+                    showError(response.data.message);
                 }
             },
             error: function() {
-                alert('An error occurred while uploading the resume.');
+                showError('An error occurred while uploading the resume.');
+            },
+            complete: function() {
+                // Reset loading state and enable button
+                loadingSpinner.addClass('hidden');
+                submitButton.prop('disabled', false);
             }
         });
     });
