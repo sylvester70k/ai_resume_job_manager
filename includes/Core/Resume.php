@@ -995,9 +995,8 @@ class Resume
 
             // Check if user data exists
             $existing_data = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE user_id = %d AND original_resume_id = %d",
-                $user_id,
-                $original_id
+                "SELECT * FROM $table_name WHERE user_id = %d",
+                $user_id
             ));
 
             if ($existing_data) {
