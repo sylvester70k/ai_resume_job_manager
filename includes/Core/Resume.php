@@ -865,8 +865,47 @@ class Resume {
                 }
             }
 
+            // Get class for styling
+            $classes = $element->hasAttribute('class') ? explode(' ', $element->getAttribute('class')) : [];
+
             // Process different element types
             switch (strtolower($element->nodeName)) {
+                case 'body':
+                    // Set default font and size for the document
+                    $section->setStyle([
+                        'font' => 'helvetica',
+                        'size' => 12,
+                        'lineHeight' => 1.6
+                    ]);
+                    // Process children
+                    foreach ($element->childNodes as $child) {
+                        $this->processHtmlElement($child, $section);
+                    }
+                    break;
+
+                case 'div':
+                    if (in_array('header', $classes)) {
+                        $section->addTextBreak(1);
+                        // Process header content
+                        foreach ($element->childNodes as $child) {
+                            $this->processHtmlElement($child, $section);
+                        }
+                        $section->addTextBreak(1);
+                    } elseif (in_array('section', $classes)) {
+                        $section->addTextBreak(1);
+                        // Process section content
+                        foreach ($element->childNodes as $child) {
+                            $this->processHtmlElement($child, $section);
+                        }
+                        $section->addTextBreak(1);
+                    } else {
+                        // Process other divs
+                        foreach ($element->childNodes as $child) {
+                            $this->processHtmlElement($child, $section);
+                        }
+                    }
+                    break;
+
                 case 'h1':
                 case 'h2':
                 case 'h3':
@@ -874,26 +913,65 @@ class Resume {
                 case 'h5':
                 case 'h6':
                     $text = $element->textContent;
-                    $section->addText($text, ['bold' => true, 'size' => 16]);
+                    if (in_array('section-title', $classes)) {
+                        $section->addText($text, [
+                            'bold' => true,
+                            'size' => 16,
+                            'underline' => 'single'
+                        ]);
+                    } else {
+                        $section->addText($text, [
+                            'bold' => true,
+                            'size' => 16
+                        ]);
+                    }
                     break;
 
                 case 'p':
-                    $text = $element->textContent;
-                    $section->addText($text, ['size' => 12]);
+                    if (in_array('name', $classes)) {
+                        $section->addText($element->textContent, [
+                            'bold' => true,
+                            'size' => 24,
+                            'alignment' => 'center'
+                        ]);
+                    } elseif (in_array('contact-info', $classes)) {
+                        $section->addText($element->textContent, [
+                            'alignment' => 'center'
+                        ]);
+                    } else {
+                        $section->addText($element->textContent, [
+                            'size' => 12
+                        ]);
+                    }
                     break;
 
                 case 'ul':
                 case 'ol':
-                    foreach ($element->childNodes as $li) {
-                        if ($li instanceof \DOMElement && $li->nodeName === 'li') {
-                            $text = $li->textContent;
-                            $section->addListItem($text, 0);
+                    if (in_array('skills-list', $classes)) {
+                        // Handle skills list differently
+                        $text = '';
+                        foreach ($element->childNodes as $li) {
+                            if ($li instanceof \DOMElement && $li->nodeName === 'li') {
+                                $text .= $li->textContent . ' | ';
+                            }
+                        }
+                        $section->addText(trim($text, ' | '), ['size' => 12]);
+                    } else {
+                        foreach ($element->childNodes as $li) {
+                            if ($li instanceof \DOMElement && $li->nodeName === 'li') {
+                                $text = $li->textContent;
+                                $section->addListItem($text, 0);
+                            }
                         }
                     }
                     break;
 
                 case 'table':
-                    $table = $section->addTable();
+                    $table = $section->addTable([
+                        'borderSize' => 6,
+                        'borderColor' => '999999',
+                        'cellMargin' => 80
+                    ]);
                     foreach ($element->childNodes as $tr) {
                         if ($tr instanceof \DOMElement && $tr->nodeName === 'tr') {
                             $row = $table->addRow();
@@ -911,11 +989,13 @@ class Resume {
                     $section->addTextBreak();
                     break;
 
-                case 'div':
                 case 'span':
-                    // Process child elements
-                    foreach ($element->childNodes as $child) {
-                        $this->processHtmlElement($child, $section);
+                    if (in_array('item-header', $classes)) {
+                        $section->addText($element->textContent, ['bold' => true]);
+                    } elseif (in_array('item-date', $classes)) {
+                        $section->addText($element->textContent, ['italic' => true]);
+                    } else {
+                        $section->addText($element->textContent);
                     }
                     break;
 
