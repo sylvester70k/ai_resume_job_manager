@@ -1005,11 +1005,11 @@ class Resume
                     $table_name,
                     array(
                         'ats_resume_id' => $version_ids['ats'],
-                        'human_resume_id' => $version_ids['human']
+                        'human_resume_id' => $version_ids['human'],
+                        'original_resume_id' => $original_id
                     ),
                     array(
-                        'user_id' => $user_id,
-                        'original_resume_id' => $original_id
+                        'user_id' => $user_id
                     ),
                     array('%d', '%d'),
                     array('%d', '%d')
