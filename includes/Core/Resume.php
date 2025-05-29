@@ -773,7 +773,22 @@ class Resume {
                             error_log('Error: PhpWord library not found');
                             throw new \Exception('PhpWord library is not installed');
                         }
-                        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'Word2007');
+
+                        // Create new PhpWord instance
+                        $phpWord = new \PhpOffice\PhpWord\PhpWord();
+                        
+                        // Add a section
+                        $section = $phpWord->addSection();
+                        
+                        // Convert HTML to Word document
+                        $dom = new \DOMDocument();
+                        @$dom->loadHTML(mb_convert_encoding($document, 'HTML-ENTITIES', 'UTF-8'));
+                        
+                        // Process each element
+                        $this->processHtmlElement($dom->documentElement, $section);
+                        
+                        // Save the document
+                        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
                         $objWriter->save($file_path);
                         error_log('Word document saved successfully');
                     }
@@ -818,6 +833,86 @@ class Resume {
             error_log('Critical error in save_ai_versions: ' . $e->getMessage());
             error_log('Stack trace: ' . $e->getTraceAsString());
             throw $e;
+        }
+    }
+
+    /**
+     * Process HTML element and convert it to Word document elements
+     */
+    private function processHtmlElement($element, $section) {
+        if (!$element) return;
+
+        // Get element style
+        $style = [];
+        if ($element->hasAttribute('style')) {
+            $styleString = $element->getAttribute('style');
+            $styles = explode(';', $styleString);
+            foreach ($styles as $styleItem) {
+                $parts = explode(':', $styleItem);
+                if (count($parts) === 2) {
+                    $style[trim($parts[0])] = trim($parts[1]);
+                }
+            }
+        }
+
+        // Process different element types
+        switch (strtolower($element->nodeName)) {
+            case 'h1':
+            case 'h2':
+            case 'h3':
+            case 'h4':
+            case 'h5':
+            case 'h6':
+                $text = $element->textContent;
+                $section->addText($text, ['bold' => true, 'size' => 16]);
+                break;
+
+            case 'p':
+                $text = $element->textContent;
+                $section->addText($text, ['size' => 12]);
+                break;
+
+            case 'ul':
+            case 'ol':
+                foreach ($element->childNodes as $li) {
+                    if ($li->nodeName === 'li') {
+                        $text = $li->textContent;
+                        $section->addListItem($text, 0);
+                    }
+                }
+                break;
+
+            case 'table':
+                $table = $section->addTable();
+                foreach ($element->childNodes as $tr) {
+                    if ($tr->nodeName === 'tr') {
+                        $row = $table->addRow();
+                        foreach ($tr->childNodes as $td) {
+                            if ($td->nodeName === 'td' || $td->nodeName === 'th') {
+                                $cell = $row->addCell();
+                                $cell->addText($td->textContent);
+                            }
+                        }
+                    }
+                }
+                break;
+
+            case 'br':
+                $section->addTextBreak();
+                break;
+
+            case '#text':
+                if (trim($element->textContent) !== '') {
+                    $section->addText($element->textContent);
+                }
+                break;
+
+            default:
+                // Process child elements
+                foreach ($element->childNodes as $child) {
+                    $this->processHtmlElement($child, $section);
+                }
+                break;
         }
     }
 
