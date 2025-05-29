@@ -143,8 +143,7 @@ function get_resume_url($resume) {
                                 id="resume-preview-<?php echo esc_attr($resume->ID); ?>" 
                                 src="<?php echo esc_url($resume_url); ?>#toolbar=0&navpanes=0" 
                                 class="w-full h-[300px] border-0 rounded" 
-                                loading="lazy" 
-                                onerror="this.parentNode.innerHTML='<div class=\'flex flex-col items-center justify-center w-full h-full text-gray-400 text-sm\'><svg xmlns=\'http://www.w3.org/2000/svg\' class=\'h-8 w-8 mb-2\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M6 18L18 6M6 6l12 12\' /></svg>Unable to preview this resume.</div>';"
+                                loading="lazy"
                             ></iframe>
                         <?php else: ?>
                             <div class="flex flex-col items-center justify-center w-full h-full text-gray-400 text-sm py-10">
