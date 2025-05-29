@@ -81,6 +81,7 @@ jQuery(document).ready(function($) {
     // Handle filter form submission
     $('#job-filters-form').on('submit', function(e) {
         e.preventDefault();
+        console.log('Filter form submitted');
         loadJobListings();
     });
 
@@ -110,15 +111,27 @@ jQuery(document).ready(function($) {
             salary_to: $('#salary-to').val()
         };
 
+        console.log('Filters:', filters);
+
         $.ajax({
-            url: ajaxurl,
+            url: resume_ai_job.ajax_url,
             type: 'POST',
             data: {
                 action: 'get_positions',
-                filters: filters
+                filters: filters,
+                nonce: resume_ai_job.nonce
             },
             success: function(response) {
-                displayJobListings(response);
+                console.log('Response:', response);
+                if (response.success) {
+                    displayJobListings(response.data);
+                } else {
+                    $('#job-listings-container').html('<p class="text-center text-red-500 py-4 text-sm">Error loading job listings. Please try again.</p>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                $('#job-listings-container').html('<p class="text-center text-red-500 py-4 text-sm">Error loading job listings. Please try again.</p>');
             }
         });
     }
@@ -190,7 +203,7 @@ jQuery(document).ready(function($) {
 
     function loadUserResumes() {
         $.ajax({
-            url: ajaxurl,
+            url: resume_ai_job.ajaxurl,
             type: 'POST',
             data: {
                 action: 'get_user_resumes'
@@ -214,7 +227,7 @@ jQuery(document).ready(function($) {
         };
 
         $.ajax({
-            url: ajaxurl,
+            url: resume_ai_job.ajaxurl,
             type: 'POST',
             data: formData,
             success: function(response) {

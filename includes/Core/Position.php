@@ -46,13 +46,26 @@ class Position {
         }
 
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        error_log('where_clause: ' . $where_clause);
         
-        $query = $wpdb->prepare(
-            "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC",
-            $params
-        );
+        // If we have parameters, use prepare, otherwise use direct query
+        if (!empty($params)) {
+            $query = $wpdb->prepare(
+                "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC",
+                $params
+            );
+        } else {
+            $query = "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC";
+        }
 
-        return $wpdb->get_results($query);
+        $results = $wpdb->get_results($query);
+        
+        // If this is an AJAX request, send JSON response
+        if (wp_doing_ajax()) {
+            wp_send_json_success($results);
+        }
+        
+        return $results;
     }
 
     /**
@@ -158,6 +171,14 @@ class Position {
         if (!is_user_logged_in()) {
             return '<p>Please <a href="' . wp_login_url(get_permalink()) . '">log in</a> to view job listings.</p>';
         }
+
+        // Enqueue necessary scripts
+        wp_enqueue_script('jquery');
+        wp_localize_script('jquery', 'resume_ai_job', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('resume_ai_job_nonce')
+        ));
 
         ob_start();
         require_once RESUME_AI_JOB_PLUGIN_DIR . 'includes/Views/job-listings.php';
