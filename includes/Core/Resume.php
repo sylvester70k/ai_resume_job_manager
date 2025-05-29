@@ -771,8 +771,9 @@ class Resume {
             
             // Check if user data exists
             $existing_data = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE user_id = %d",
-                $user_id
+                "SELECT * FROM $table_name WHERE user_id = %d AND original_resume_id = %d",
+                $user_id,
+                $original_id
             ));
 
             if ($existing_data) {
@@ -780,13 +781,15 @@ class Resume {
                 $wpdb->update(
                     $table_name,
                     array(
-                        'original_resume_id' => $original_id,
                         'ats_resume_id' => $version_ids['ats'],
                         'human_resume_id' => $version_ids['human']
                     ),
-                    array('user_id' => $user_id),
-                    array('%d', '%d', '%d'),
-                    array('%d')
+                    array(
+                        'user_id' => $user_id,
+                        'original_resume_id' => $original_id
+                    ),
+                    array('%d', '%d'),
+                    array('%d', '%d')
                 );
             } else {
                 // Insert new record
@@ -916,10 +919,19 @@ class Resume {
         $user_id = get_current_user_id();
         $original_id = intval($_POST['original_id']);
         
+        // Get versions from custom table
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'resume_ai_job_user_data';
+        $resume_data = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE user_id = %d AND original_resume_id = %d",
+            $user_id,
+            $original_id
+        ));
+        
         $versions = array(
             'original' => $original_id,
-            'ats' => get_post_meta($original_id, '_ai_version_ats', true),
-            'human' => get_post_meta($original_id, '_ai_version_human', true)
+            'ats' => $resume_data ? $resume_data->ats_resume_id : null,
+            'human' => $resume_data ? $resume_data->human_resume_id : null
         );
         
         wp_send_json_success($versions);
