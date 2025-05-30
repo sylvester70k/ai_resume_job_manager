@@ -79,8 +79,11 @@ if (!defined('ABSPATH')) {
 </div>
 
 <script>
+console.log('Script loaded'); // Test if script is loading
+
 // Define functions in global scope
 function openApplicationModal(positionId) {
+    console.log('Opening modal for position:', positionId);
     jQuery('#position-id').val(positionId);
     loadUserResumes();
     jQuery('#application-modal').show();
@@ -132,6 +135,8 @@ function updateResumePreview(resumeId) {
 }
 
 jQuery(document).ready(function($) {
+    console.log('Document ready'); // Test if jQuery ready is working
+
     // Load initial job listings
     loadJobListings();
 
@@ -140,6 +145,13 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         console.log('Filter form submitted');
         loadJobListings();
+    });
+
+    // Direct click handler for submit button
+    $('#application-form button[type="submit"]').on('click', function(e) {
+        e.preventDefault();
+        console.log('Submit button clicked');
+        submitApplication();
     });
 
     // Handle application form submission
