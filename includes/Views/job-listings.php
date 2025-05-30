@@ -59,10 +59,15 @@ if (!defined('ABSPATH')) {
 
                 <div class="space-y-1">
                     <label for="resume-select" class="block text-xs font-medium text-gray-700">Select Resume</label>
-                    <select id="resume-select" name="resume_id" required
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                        <!-- Resumes will be loaded here dynamically -->
-                    </select>
+                    <div class="flex items-center gap-3">
+                        <select id="resume-select" name="resume_id" required
+                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                            <!-- Resumes will be loaded here dynamically -->
+                        </select>
+                        <div id="resume-preview" class="hidden">
+                            <img src="" alt="Resume Preview" class="w-10 h-10 object-cover rounded">
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="w-full bg-blue-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors">
@@ -74,44 +79,6 @@ if (!defined('ABSPATH')) {
 </div>
 
 <script>
-// Define openApplicationModal in global scope
-function openApplicationModal(positionId) {
-    jQuery('#position-id').val(positionId);
-    loadUserResumes();
-    jQuery('#application-modal').show();
-}
-
-// Define loadUserResumes in global scope
-function loadUserResumes() {
-    jQuery.ajax({
-        url: resume_ai_job.ajaxurl,
-        type: 'POST',
-        data: {
-            action: 'get_user_resumes',
-            nonce: resume_ai_job.nonce
-        },
-        success: function(response) {
-            console.log('Resumes response:', response);
-            const select = jQuery('#resume-select');
-            select.empty();
-            
-            if (response.success && response.data && response.data.length > 0) {
-                response.data.forEach(function(resume) {
-                    select.append(`<option value="${resume.id}">${resume.title}</option>`);
-                });
-            } else {
-                select.append('<option value="">No resumes available</option>');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading resumes:', error);
-            const select = jQuery('#resume-select');
-            select.empty();
-            select.append('<option value="">Error loading resumes</option>');
-        }
-    });
-}
-
 jQuery(document).ready(function($) {
     // Load initial job listings
     loadJobListings();
@@ -231,6 +198,62 @@ jQuery(document).ready(function($) {
     function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString();
+    }
+
+    function openApplicationModal(positionId) {
+        $('#position-id').val(positionId);
+        loadUserResumes();
+        $('#application-modal').show();
+    }
+
+    function loadUserResumes() {
+        $.ajax({
+            url: resume_ai_job.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'get_user_resumes',
+                nonce: resume_ai_job.nonce
+            },
+            success: function(response) {
+                console.log('Resumes response:', response);
+                const select = $('#resume-select');
+                select.empty();
+                
+                if (response.success && response.data && response.data.length > 0) {
+                    response.data.forEach(function(resume) {
+                        select.append(`<option value="${resume.id}" data-preview="${resume.preview_url || ''}">${resume.title}</option>`);
+                    });
+                    // Show preview for first resume
+                    updateResumePreview(select.val());
+                } else {
+                    select.append('<option value="">No resumes available</option>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading resumes:', error);
+                const select = $('#resume-select');
+                select.empty();
+                select.append('<option value="">Error loading resumes</option>');
+            }
+        });
+    }
+
+    // Add event listener for resume selection change
+    $('#resume-select').on('change', function() {
+        updateResumePreview($(this).val());
+    });
+
+    function updateResumePreview(resumeId) {
+        const preview = $('#resume-preview');
+        const selectedOption = $('#resume-select option:selected');
+        const previewUrl = selectedOption.data('preview');
+
+        if (previewUrl) {
+            preview.find('img').attr('src', previewUrl);
+            preview.removeClass('hidden');
+        } else {
+            preview.addClass('hidden');
+        }
     }
 
     function submitApplication() {

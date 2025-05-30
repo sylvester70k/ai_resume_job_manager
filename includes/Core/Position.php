@@ -156,12 +156,20 @@ class Position {
         $user_id = get_current_user_id();
         
         $resumes = $wpdb->get_results($wpdb->prepare(
-            "SELECT ud.id, p.post_title as title 
+            "SELECT ud.id, p.post_title as title, ud.published_resume_id
             FROM {$wpdb->prefix}resume_ai_job_user_data ud
             JOIN {$wpdb->posts} p ON ud.published_resume_id = p.ID
             WHERE ud.user_id = %d AND ud.published_resume_id IS NOT NULL",
             $user_id
         ));
+
+        // Add preview URL for each resume
+        foreach ($resumes as &$resume) {
+            $pdf_url = wp_get_attachment_url($resume->published_resume_id);
+            if ($pdf_url) {
+                $resume->preview_url = str_replace('.pdf', '-pdf.jpg', $pdf_url);
+            }
+        }
 
         wp_send_json_success($resumes);
     }
