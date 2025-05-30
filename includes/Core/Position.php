@@ -23,26 +23,26 @@ class Position {
         $table_name = $wpdb->prefix . 'resume_ai_job_positions';
         $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
         
-        $where = array('status = "active"');
+        $where = array('p.status = "active"');
         $params = array();
 
         if (!empty($filters['title'])) {
-            $where[] = 'title LIKE %s';
+            $where[] = 'p.title LIKE %s';
             $params[] = '%' . $wpdb->esc_like($filters['title']) . '%';
         }
 
         if (!empty($filters['location'])) {
-            $where[] = 'location LIKE %s';
+            $where[] = 'p.location LIKE %s';
             $params[] = '%' . $wpdb->esc_like($filters['location']) . '%';
         }
 
         if (!empty($filters['salary_from'])) {
-            $where[] = 'salary_from >= %d';
+            $where[] = 'p.salary_from >= %d';
             $params[] = intval($filters['salary_from']);
         }
 
         if (!empty($filters['salary_to'])) {
-            $where[] = 'salary_to <= %d';
+            $where[] = 'p.salary_to <= %d';
             $params[] = intval($filters['salary_to']);
         }
 
