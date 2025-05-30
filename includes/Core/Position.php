@@ -77,7 +77,30 @@ class Position {
      * @param int $resume_id The resume ID
      * @return array|WP_Error Result of the application
      */
-    public function apply_position($position_id, $user_id, $cover_letter, $resume_id) {
+    public function apply_position() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'resume_ai_job_nonce')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+
+        // Get current user
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            wp_send_json_error('User not logged in');
+            return;
+        }
+
+        // Get and validate required fields
+        $position_id = isset($_POST['position_id']) ? intval($_POST['position_id']) : 0;
+        $cover_letter = isset($_POST['cover_letter']) ? sanitize_textarea_field($_POST['cover_letter']) : '';
+        $resume_id = isset($_POST['resume_id']) ? intval($_POST['resume_id']) : 0;
+
+        if (!$position_id || !$cover_letter || !$resume_id) {
+            wp_send_json_error('Missing required fields');
+            return;
+        }
+
         global $wpdb;
         
         // Check if position exists and is active
@@ -87,7 +110,8 @@ class Position {
         ));
 
         if (!$position) {
-            return new \WP_Error('invalid_position', 'Position not found or not active');
+            wp_send_json_error('Position not found or not active');
+            return;
         }
 
         // Check if user has already applied
@@ -99,7 +123,8 @@ class Position {
         ));
 
         if ($existing_application) {
-            return new \WP_Error('already_applied', 'You have already applied for this position');
+            wp_send_json_error('You have already applied for this position');
+            return;
         }
 
         // Insert application
@@ -116,13 +141,13 @@ class Position {
         );
 
         if ($result === false) {
-            return new \WP_Error('db_error', 'Failed to submit application');
+            wp_send_json_error('Failed to submit application');
+            return;
         }
 
-        return array(
-            'success' => true,
+        wp_send_json_success(array(
             'message' => 'Application submitted successfully'
-        );
+        ));
     }
 
     /**
