@@ -89,6 +89,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
     </div>
 </div>
 
+<!--[CDATA[-->
 <script>
     console.log('Script loaded'); // Test if script is loading
 
@@ -102,7 +103,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
 
     function loadUserResumes() {
         jQuery.ajax({
-            url: resume_ai_job.ajaxurl,
+            url: resume_ai_job.ajax_url,
             type: 'POST',
             data: {
                 action: 'get_user_resumes',
@@ -243,28 +244,46 @@ wp_localize_script('jquery', 'resume_ai_job', array(
             const container = $('#job-listings-container');
             container.empty();
 
+            if (!Array.isArray(jobs)) {
+                console.error('Invalid jobs data:', jobs);
+                container.html('<p class="text-center text-red-500 py-4 text-sm">Error: Invalid data received</p>');
+                return;
+            }
+
             if (jobs.length === 0) {
                 container.html('<p class="text-center text-gray-500 py-4 text-sm">No jobs found matching your criteria.</p>');
                 return;
             }
 
             jobs.forEach(function (job) {
+                if (!job || typeof job !== 'object') {
+                    console.error('Invalid job data:', job);
+                    return;
+                }
+
+                const statusHtml = job.application_status 
+                    ? `<div class="flex items-center gap-2 mb-3">
+                        <span class="text-sm font-medium ${getStatusColor(job.application_status)}">
+                            ${getStatusText(job.application_status)}
+                        </span>
+                       </div>`
+                    : `<button class="apply-button ${job.application_status ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-1.5 text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
+                        data-position-id="${job.id}"
+                        ${job.application_status ? 'disabled' : ''}>
+                        ${job.application_status ? 'Already Applied' : 'Apply Now'}
+                       </button>`;
+
+                const descriptionHtml = job.description.length > 200 
+                    ? `<div class="description-preview">${truncateText(job.description, 200)}</div>
+                       <div class="description-full hidden mt-2">${job.description}</div>
+                       <button class="text-blue-600 text-xs font-medium hover:text-blue-700 mt-1 toggle-description">Show More</button>`
+                    : `<div class="description-preview">${job.description}</div>`;
+
                 const jobCard = `
                 <div class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
                     <h3 class="text-base font-semibold text-blue-600 mb-2 flex items-center w-full justify-between">
                         <span>${job.title}</span>
-                        ${job.application_status 
-                            ? `<div class="flex items-center gap-2 mb-3">
-                                <span class="text-sm font-medium ${getStatusColor(job.application_status)}">
-                                    ${getStatusText(job.application_status)}
-                                </span>
-                               </div>`
-                            : `<button class="apply-button ${job.application_status ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-1.5 text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
-                                data-position-id="${job.id}"
-                                ${job.application_status ? 'disabled' : ''}>
-                                ${job.application_status ? 'Already Applied' : 'Apply Now'}
-                               </button>`
-                        }
+                        ${statusHtml}
                     </h3>
                     <div class="flex flex-wrap gap-3 text-xs text-gray-600 mb-2">
                         <span class="flex items-center">
@@ -288,18 +307,9 @@ wp_localize_script('jquery', 'resume_ai_job', array(
                         </span>
                     </div>
                     <div class="text-sm text-gray-700 mb-3">
-                        <div class="description-preview">${truncateText(job.description, 200)}</div>
-                        ${job.description.length > 200 ? `
-                            <div class="description-full hidden mt-2">
-                                ${job.description}
-                            </div>
-                            <button class="text-blue-600 text-xs font-medium hover:text-blue-700 mt-1 toggle-description">
-                                Show More
-                            </button>
-                        ` : ''}
+                        ${descriptionHtml}
                     </div>
-                </div>
-            `;
+                </div>`;
                 container.append(jobCard);
             });
 
@@ -365,12 +375,29 @@ wp_localize_script('jquery', 'resume_ai_job', array(
         }
 
         function formatSalary(job) {
-            if (!job.salary_from && !job.salary_to) return 'Salary not specified';
             const currency = job.salary_currency || 'USD';
-            if (job.salary_from && job.salary_to) {
-                return `${currency} ${job.salary_from} - ${job.salary_to}`;
+            
+            // Check if salary_from exists
+            if (job.salary_from !== null) {
+                if (job.salary_from !== undefined) {
+                    // Check if salary_to exists
+                    if (job.salary_to !== null) {
+                        if (job.salary_to !== undefined) {
+                            return `${currency} ${job.salary_from.toLocaleString()} - ${job.salary_to.toLocaleString()}`;
+                        }
+                    }
+                    return `${currency} ${job.salary_from.toLocaleString()}+`;
+                }
             }
-            return `${currency} ${job.salary_from || job.salary_to}`;
+            
+            // Check if salary_to exists
+            if (job.salary_to !== null) {
+                if (job.salary_to !== undefined) {
+                    return `Up to ${currency} ${job.salary_to.toLocaleString()}`;
+                }
+            }
+
+            return 'Salary not specified';
         }
 
         function formatDate(dateString) {
@@ -395,7 +422,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
             }
 
             $.ajax({
-                url: resume_ai_job.ajaxurl,
+                url: resume_ai_job.ajax_url,
                 type: 'POST',
                 data: formData,
                 beforeSend: function () {
@@ -419,3 +446,4 @@ wp_localize_script('jquery', 'resume_ai_job', array(
         }
     });
 </script>
+<!--]]-->
