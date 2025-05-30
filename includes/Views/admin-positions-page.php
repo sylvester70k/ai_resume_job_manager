@@ -445,6 +445,7 @@ jQuery(document).ready(function($) {
                     $('#application-details').data('application-id', applicationId);
                     $('#application-status').val(application.status);
                     $('#application-modal').removeClass('hidden');
+                    $('#applications-modal').addClass('hidden');
                 }
             }
         });
