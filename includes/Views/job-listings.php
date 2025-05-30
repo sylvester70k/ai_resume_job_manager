@@ -234,17 +234,17 @@ if (!defined('ABSPATH')) {
                 <div class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
                     <h3 class="text-base font-semibold text-blue-600 mb-2 flex items-center w-full justify-between">
                         <span>${job.title}</span>
-                        ${job.application_status ? 
-                        `<div class="flex items-center gap-2 mb-3">
-                            <span class="text-sm font-medium ${getStatusColor(job.application_status)}">
-                                ${getStatusText(job.application_status)}
-                            </span>
-                        </div>` :
-                        `<button class="apply-button ${job.application_status ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-1.5 text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
-                            data-position-id="${job.id}"
-                            ${job.application_status ? 'disabled' : ''}>
-                            ${job.application_status ? 'Already Applied' : 'Apply Now'}
-                        </button>`
+                        ${job.application_status 
+                            ? `<div class="flex items-center gap-2 mb-3">
+                                <span class="text-sm font-medium ${getStatusColor(job.application_status)}">
+                                    ${getStatusText(job.application_status)}
+                                </span>
+                               </div>`
+                            : `<button class="apply-button ${job.application_status ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-1.5 text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
+                                data-position-id="${job.id}"
+                                ${job.application_status ? 'disabled' : ''}>
+                                ${job.application_status ? 'Already Applied' : 'Apply Now'}
+                               </button>`
                         }
                     </h3>
                     <div class="flex flex-wrap gap-3 text-xs text-gray-600 mb-2">
