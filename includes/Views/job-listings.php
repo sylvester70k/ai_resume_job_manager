@@ -74,6 +74,31 @@ if (!defined('ABSPATH')) {
 </div>
 
 <script>
+// Define openApplicationModal in global scope
+function openApplicationModal(positionId) {
+    jQuery('#position-id').val(positionId);
+    loadUserResumes();
+    jQuery('#application-modal').show();
+}
+
+// Define loadUserResumes in global scope
+function loadUserResumes() {
+    jQuery.ajax({
+        url: resume_ai_job.ajaxurl,
+        type: 'POST',
+        data: {
+            action: 'get_user_resumes'
+        },
+        success: function(response) {
+            const select = jQuery('#resume-select');
+            select.empty();
+            response.forEach(function(resume) {
+                select.append(`<option value="${resume.id}">${resume.title}</option>`);
+            });
+        }
+    });
+}
+
 jQuery(document).ready(function($) {
     // Load initial job listings
     loadJobListings();
@@ -193,29 +218,6 @@ jQuery(document).ready(function($) {
     function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString();
-    }
-
-    function openApplicationModal(positionId) {
-        $('#position-id').val(positionId);
-        loadUserResumes();
-        $('#application-modal').show();
-    }
-
-    function loadUserResumes() {
-        $.ajax({
-            url: resume_ai_job.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'get_user_resumes'
-            },
-            success: function(response) {
-                const select = $('#resume-select');
-                select.empty();
-                response.forEach(function(resume) {
-                    select.append(`<option value="${resume.id}">${resume.title}</option>`);
-                });
-            }
-        });
     }
 
     function submitApplication() {
