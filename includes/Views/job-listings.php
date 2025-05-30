@@ -145,6 +145,7 @@ jQuery(document).ready(function($) {
     // Handle application form submission
     $('#application-form').on('submit', function(e) {
         e.preventDefault();
+        console.log('Application form submitted');
         submitApplication();
     });
 
@@ -264,11 +265,13 @@ jQuery(document).ready(function($) {
     }
 
     function submitApplication() {
+        console.log('submitApplication function called');
         const formData = {
             action: 'apply_position',
             position_id: $('#position-id').val(),
             cover_letter: $('#cover-letter').val(),
-            resume_id: $('#resume-select').val()
+            resume_id: $('#resume-select').val(),
+            nonce: resume_ai_job.nonce
         };
 
         console.log('Form data:', formData);
@@ -281,14 +284,22 @@ jQuery(document).ready(function($) {
             url: resume_ai_job.ajaxurl,
             type: 'POST',
             data: formData,
+            beforeSend: function() {
+                console.log('Sending AJAX request...');
+            },
             success: function(response) {
+                console.log('Application response:', response);
                 if (response.success) {
                     alert('Application submitted successfully!');
                     $('#application-modal').hide();
                     $('#application-form')[0].reset();
                 } else {
-                    alert(response.message || 'Error submitting application');
+                    alert(response.data?.message || 'Error submitting application. Please try again.');
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('Application submission error:', error);
+                alert('Error submitting application. Please try again.');
             }
         });
     }
