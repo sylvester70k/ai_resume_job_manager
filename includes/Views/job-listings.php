@@ -2,6 +2,13 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Enqueue necessary scripts and localize them
+wp_enqueue_script('jquery');
+wp_localize_script('jquery', 'resume_ai_job', array(
+    'ajax_url' => admin_url('admin-ajax.php'),
+    'nonce' => wp_create_nonce('resume_ai_job_nonce')
+));
 ?>
 
 <div class="!max-w-full mx-auto px-3 sm:px-4 lg:px-6 py-4">
@@ -139,7 +146,7 @@ if (!defined('ABSPATH')) {
     }
 
     jQuery(document).ready(function ($) {
-        console.log('Document ready');
+        console.log('Document ready - Initializing job listings page');
 
         // Load initial job listings
         loadJobListings();
@@ -195,7 +202,9 @@ if (!defined('ABSPATH')) {
                 salary_to: $('#salary-to').val()
             };
 
-            console.log('Filters:', filters);
+            console.log('Loading job listings with filters:', filters);
+            console.log('AJAX URL:', resume_ai_job.ajax_url);
+            console.log('Nonce:', resume_ai_job.nonce);
 
             $.ajax({
                 url: resume_ai_job.ajax_url,
@@ -205,16 +214,26 @@ if (!defined('ABSPATH')) {
                     filters: filters,
                     nonce: resume_ai_job.nonce
                 },
+                beforeSend: function() {
+                    console.log('Sending AJAX request...');
+                    $('#job-listings-container').html('<p class="text-center text-gray-500 py-4 text-sm">Loading jobs...</p>');
+                },
                 success: function (response) {
-                    console.log('Response:', response);
+                    console.log('AJAX Response:', response);
                     if (response.success) {
+                        console.log('Jobs data:', response.data);
                         displayJobListings(response.data);
                     } else {
+                        console.error('Error in response:', response);
                         $('#job-listings-container').html('<p class="text-center text-red-500 py-4 text-sm">Error loading job listings. Please try again.</p>');
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error('AJAX Error:', error);
+                    console.error('AJAX Error:', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseText
+                    });
                     $('#job-listings-container').html('<p class="text-center text-red-500 py-4 text-sm">Error loading job listings. Please try again.</p>');
                 }
             });

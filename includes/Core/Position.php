@@ -7,6 +7,7 @@ class Position {
      */
     public function init() {
         add_action('wp_ajax_get_positions', array($this, 'get_positions'));
+        add_action('wp_ajax_nopriv_get_positions', array($this, 'get_positions'));
         add_action('wp_ajax_apply_position', array($this, 'apply_position'));
         add_action('wp_ajax_get_user_resumes', array($this, 'get_user_resumes'));
         add_shortcode('resume_ai_job_listings', array($this, 'render_job_listings'));
@@ -19,6 +20,12 @@ class Position {
      * @return array List of positions
      */
     public function get_positions($filters = array()) {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'resume_ai_job_nonce')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+
         global $wpdb;
         $table_name = $wpdb->prefix . 'resume_ai_job_positions';
         $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
@@ -47,9 +54,8 @@ class Position {
         }
 
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
-        error_log('where_clause: ' . $where_clause);
         
-        // Get current user ID
+        // Get current user ID (0 if not logged in)
         $user_id = get_current_user_id();
         
         // If we have parameters, use prepare, otherwise use direct query
