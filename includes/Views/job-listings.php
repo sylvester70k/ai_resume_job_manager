@@ -116,7 +116,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
 
                 if (response.success && response.data && response.data.length > 0) {
                     response.data.forEach(function (resume) {
-                        select.append(`<option value="${resume.id}" data-preview="${resume.preview_url || ''}">${resume.title}</option>`);
+                        select.append(`<option value="${resume.published_resume_id}" data-preview="${resume.preview_url || ''}">${resume.title}</option>`);
                     });
                     // Show preview for first resume
                     updateResumePreview(select.val());
