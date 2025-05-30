@@ -405,7 +405,7 @@ jQuery(document).ready(function($) {
     });
 
     // View Application
-    $('.view-application').click(function(e) {
+    $(document).on('click', '.view-application', function(e) {
         e.preventDefault();
         const applicationId = $(this).data('id');
         
