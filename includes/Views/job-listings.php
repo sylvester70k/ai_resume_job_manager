@@ -44,7 +44,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
 
     <!-- Job Listings Section -->
     <div class="space-y-3">
-        <div id="job-listings-container">
+        <div id="job-listings-container" class="flex flex-col gap-3">
             <!-- Job listings will be loaded here dynamically -->
         </div>
     </div>
@@ -434,6 +434,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
                         alert('Application submitted successfully!');
                         $('#application-modal').hide();
                         $('#application-form')[0].reset();
+                        document.location.reload();
                     } else {
                         alert(response.data?.message || 'Error submitting application. Please try again.');
                     }
