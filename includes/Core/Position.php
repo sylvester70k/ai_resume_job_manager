@@ -21,6 +21,7 @@ class Position {
     public function get_positions($filters = array()) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'resume_ai_job_positions';
+        $applications_table = $wpdb->prefix . 'resume_ai_job_applications';
         
         $where = array('status = "active"');
         $params = array();
@@ -48,14 +49,28 @@ class Position {
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
         error_log('where_clause: ' . $where_clause);
         
+        // Get current user ID
+        $user_id = get_current_user_id();
+        
         // If we have parameters, use prepare, otherwise use direct query
         if (!empty($params)) {
             $query = $wpdb->prepare(
-                "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC",
-                $params
+                "SELECT p.*, a.status as application_status 
+                FROM $table_name p 
+                LEFT JOIN $applications_table a ON p.id = a.position_id AND a.user_id = %d 
+                $where_clause 
+                ORDER BY p.created_at DESC",
+                array_merge([$user_id], $params)
             );
         } else {
-            $query = "SELECT * FROM $table_name $where_clause ORDER BY created_at DESC";
+            $query = $wpdb->prepare(
+                "SELECT p.*, a.status as application_status 
+                FROM $table_name p 
+                LEFT JOIN $applications_table a ON p.id = a.position_id AND a.user_id = %d 
+                $where_clause 
+                ORDER BY p.created_at DESC",
+                $user_id
+            );
         }
 
         $results = $wpdb->get_results($query);

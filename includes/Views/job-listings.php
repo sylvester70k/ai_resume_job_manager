@@ -251,9 +251,17 @@ jQuery(document).ready(function($) {
                         </span>
                     </div>
                     <p class="text-sm text-gray-700 mb-3">${job.description}</p>
-                    <button class="apply-button bg-blue-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors" 
-                            data-position-id="${job.id}">
-                        Apply Now
+                    ${job.application_status ? `
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-sm font-medium ${getStatusColor(job.application_status)}">
+                                ${getStatusText(job.application_status)}
+                            </span>
+                        </div>
+                    ` : ''}
+                    <button class="apply-button ${job.application_status ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-1.5 text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors" 
+                            data-position-id="${job.id}"
+                            ${job.application_status ? 'disabled' : ''}>
+                        ${job.application_status ? 'Already Applied' : 'Apply Now'}
                     </button>
                 </div>
             `;
@@ -263,8 +271,40 @@ jQuery(document).ready(function($) {
         // Add click handler for apply buttons
         $('.apply-button').on('click', function() {
             const positionId = $(this).data('position-id');
-            openApplicationModal(positionId);
+            if (!$(this).prop('disabled')) {
+                openApplicationModal(positionId);
+            }
         });
+    }
+
+    function getStatusColor(status) {
+        switch(status) {
+            case 'pending':
+                return 'text-yellow-600';
+            case 'review':
+                return 'text-blue-600';
+            case 'approved':
+                return 'text-green-600';
+            case 'rejected':
+                return 'text-red-600';
+            default:
+                return 'text-gray-600';
+        }
+    }
+
+    function getStatusText(status) {
+        switch(status) {
+            case 'pending':
+                return 'Application Pending';
+            case 'review':
+                return 'Under Review';
+            case 'approved':
+                return 'Application Approved';
+            case 'rejected':
+                return 'Application Rejected';
+            default:
+                return 'Status Unknown';
+        }
     }
 
     function formatSalary(job) {
