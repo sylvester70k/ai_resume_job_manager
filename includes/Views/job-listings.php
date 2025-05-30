@@ -135,7 +135,7 @@ function updateResumePreview(resumeId) {
 }
 
 jQuery(document).ready(function($) {
-    console.log('Document ready'); // Test if jQuery ready is working
+    console.log('Document ready');
 
     // Load initial job listings
     loadJobListings();
@@ -147,17 +147,22 @@ jQuery(document).ready(function($) {
         loadJobListings();
     });
 
-    // Direct click handler for submit button
-    $('#application-form button[type="submit"]').on('click', function(e) {
+    // Handle application form submission - using both submit and click events
+    const $applicationForm = $('#application-form');
+    const $submitButton = $applicationForm.find('button[type="submit"]');
+
+    console.log('Form found:', $applicationForm.length > 0);
+    console.log('Submit button found:', $submitButton.length > 0);
+
+    $applicationForm.on('submit', function(e) {
         e.preventDefault();
-        console.log('Submit button clicked');
+        console.log('Form submit event triggered');
         submitApplication();
     });
 
-    // Handle application form submission
-    $('#application-form').on('submit', function(e) {
+    $submitButton.on('click', function(e) {
         e.preventDefault();
-        console.log('Application form submitted');
+        console.log('Submit button clicked');
         submitApplication();
     });
 
