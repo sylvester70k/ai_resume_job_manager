@@ -156,8 +156,10 @@ class Position {
         $user_id = get_current_user_id();
         
         $resumes = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, title FROM {$wpdb->prefix}resume_ai_job_user_data 
-            WHERE user_id = %d AND published_resume_id IS NOT NULL",
+            "SELECT ud.id, p.post_title as title 
+            FROM {$wpdb->prefix}resume_ai_job_user_data ud
+            JOIN {$wpdb->posts} p ON ud.published_resume_id = p.ID
+            WHERE ud.user_id = %d AND ud.published_resume_id IS NOT NULL",
             $user_id
         ));
 
