@@ -42,8 +42,8 @@ if (!defined('ABSPATH')) {
     </div>
 
     <!-- Application Modal -->
-    <div id="application-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-16 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white max-w-2xl">
+    <div id="application-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+        <div class="relative top-16 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white max-w-2xl" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-lg font-semibold text-gray-800">Apply for Position</h2>
                 <span class="close text-gray-500 hover:text-gray-700 cursor-pointer text-xl">&times;</span>
