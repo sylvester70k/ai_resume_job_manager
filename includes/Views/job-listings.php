@@ -271,6 +271,12 @@ jQuery(document).ready(function($) {
             resume_id: $('#resume-select').val()
         };
 
+        console.log('Form data:', formData);
+        if (!formData.position_id || !formData.cover_letter || !formData.resume_id) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
         $.ajax({
             url: resume_ai_job.ajaxurl,
             type: 'POST',
