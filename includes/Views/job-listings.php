@@ -59,13 +59,13 @@ if (!defined('ABSPATH')) {
 
                 <div class="space-y-1">
                     <label for="resume-select" class="block text-xs font-medium text-gray-700">Select Resume</label>
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center gap-3">
                         <select id="resume-select" name="resume_id" required
                                 class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
                             <!-- Resumes will be loaded here dynamically -->
                         </select>
                         <div id="resume-preview" class="hidden">
-                            <img src="" alt="Resume Preview" class="w-10 h-10 object-cover rounded">
+                            <img src="" alt="Resume Preview" class="w-full h-auto object-cover rounded">
                         </div>
                     </div>
                 </div>
