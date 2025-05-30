@@ -87,14 +87,27 @@ function loadUserResumes() {
         url: resume_ai_job.ajaxurl,
         type: 'POST',
         data: {
-            action: 'get_user_resumes'
+            action: 'get_user_resumes',
+            nonce: resume_ai_job.nonce
         },
         success: function(response) {
+            console.log('Resumes response:', response);
             const select = jQuery('#resume-select');
             select.empty();
-            response.forEach(function(resume) {
-                select.append(`<option value="${resume.id}">${resume.title}</option>`);
-            });
+            
+            if (response.success && response.data && response.data.length > 0) {
+                response.data.forEach(function(resume) {
+                    select.append(`<option value="${resume.id}">${resume.title}</option>`);
+                });
+            } else {
+                select.append('<option value="">No resumes available</option>');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading resumes:', error);
+            const select = jQuery('#resume-select');
+            select.empty();
+            select.append('<option value="">Error loading resumes</option>');
         }
     });
 }
