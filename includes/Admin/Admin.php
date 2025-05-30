@@ -583,7 +583,23 @@ class Admin {
         }
 
         // Get resume URL
-        $resume_url = wp_get_attachment_url($application->resume_id);
+        $resume_url = '';
+        if ($application->resume_id) {
+            $attachment = get_post($application->resume_id);
+            if ($attachment && $attachment->post_type === 'attachment') {
+                // Check if current user has permission to view the resume
+                if (current_user_can('manage_options') || get_post_meta($application->resume_id, '_resume_user_id', true) == $application->user_id) {
+                    $resume_url = wp_get_attachment_url($application->resume_id);
+                    if (!$resume_url) {
+                        error_log('Failed to get attachment URL for resume ID: ' . $application->resume_id);
+                    }
+                } else {
+                    error_log('User does not have permission to view resume ID: ' . $application->resume_id);
+                }
+            } else {
+                error_log('Invalid resume attachment ID: ' . $application->resume_id);
+            }
+        }
         $application->resume_url = $resume_url;
 
         wp_send_json_success($application);

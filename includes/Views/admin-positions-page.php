@@ -435,7 +435,10 @@ jQuery(document).ready(function($) {
                         </div>
                         <div class="form-field">
                             <h4>Resume</h4>
-                            <a href="${application.resume_url}" target="_blank">View Resume</a>
+                            ${application.resume_url ? 
+                                `<a href="${application.resume_url}" target="_blank">View Resume</a>` :
+                                `<span class="text-gray-500">Resume not available</span>`
+                            }
                         </div>
                     `;
                     $('#application-details').html(details);
