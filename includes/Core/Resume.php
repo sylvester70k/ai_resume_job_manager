@@ -147,13 +147,25 @@ class Resume
                 copy($file_path, $pdf_path);
             } else if ($file_type['type'] === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                       $file_type['type'] === 'application/msword') {
-                // Convert DOC/DOCX to PDF using PhpWord
+                // Convert DOC/DOCX to PDF using PhpWord with TCPDF renderer
                 if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
                     throw new \Exception('PhpWord library is not installed');
                 }
 
+                // Load the document
                 $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
+                
+                // Create PDF writer
                 $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+                
+                // Set PDF renderer options
+                \PhpOffice\PhpWord\Settings::setPdfRendererOptions([
+                    'font' => 'helvetica',
+                    'paperSize' => 'A4',
+                    'orientation' => 'P'
+                ]);
+                
+                // Save as PDF
                 $pdfWriter->save($pdf_path);
             } else {
                 throw new \Exception('Unsupported file type for PDF conversion');

@@ -124,5 +124,9 @@ class Config {
         if (!defined('K_TIMEZONE')) {
             define('K_TIMEZONE', 'UTC');
         }
+
+        // Configure PhpWord to use TCPDF
+        \PhpOffice\PhpWord\Settings::setPdfRendererName(\PhpOffice\PhpWord\Settings::PDF_RENDERER_TCPDF);
+        \PhpOffice\PhpWord\Settings::setPdfRendererPath(RESUME_AI_JOB_PLUGIN_DIR . 'vendor/tecnickcom/tcpdf');
     }
 } 
