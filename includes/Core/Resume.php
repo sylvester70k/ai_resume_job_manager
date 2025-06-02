@@ -133,6 +133,36 @@ class Resume
         return ob_get_clean();
     }
 
+    private function convert_to_pdf($file_path) {
+        try {
+            $file_type = wp_check_filetype(basename($file_path), null);
+            $upload_dir = wp_upload_dir();
+            $pdf_path = $upload_dir['path'] . '/converted_' . time() . '.pdf';
+
+            if ($file_type['type'] === 'application/pdf') {
+                // Already a PDF, just copy it
+                copy($file_path, $pdf_path);
+            } else if ($file_type['type'] === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                      $file_type['type'] === 'application/msword') {
+                // Convert DOC/DOCX to PDF using PhpWord
+                if (!class_exists('\\PhpOffice\\PhpWord\\IOFactory')) {
+                    throw new \Exception('PhpWord library is not installed');
+                }
+
+                $phpWord = \PhpOffice\PhpWord\IOFactory::load($file_path);
+                $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+                $pdfWriter->save($pdf_path);
+            } else {
+                throw new \Exception('Unsupported file type for PDF conversion');
+            }
+
+            return $pdf_path;
+        } catch (\Exception $e) {
+            error_log('PDF Conversion Error: ' . $e->getMessage());
+            return new \WP_Error('pdf_conversion_error', 'Failed to convert file to PDF: ' . $e->getMessage());
+        }
+    }
+
     public function handle_resume_upload()
     {
         try {
@@ -167,6 +197,21 @@ class Resume
             }
 
             error_log('Resume Upload - Upload Success: ' . print_r($upload, true));
+
+            // Convert to PDF if not already PDF
+            $file_type = wp_check_filetype(basename($upload['file']), null);
+            if ($file_type['type'] !== 'application/pdf') {
+                $pdf_path = $this->convert_to_pdf($upload['file']);
+                if (is_wp_error($pdf_path)) {
+                    error_log('Resume Upload - PDF Conversion Error: ' . $pdf_path->get_error_message());
+                    wp_send_json_error(array('message' => $pdf_path->get_error_message()));
+                    return;
+                }
+                // Replace original file with PDF
+                @unlink($upload['file']);
+                $upload['file'] = $pdf_path;
+                $upload['type'] = 'application/pdf';
+            }
 
             // Create attachment
             $attachment_id = $this->create_resume_attachment($upload['file'], $user_id);

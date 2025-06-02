@@ -7,7 +7,9 @@ if (!defined('ABSPATH')) {
 wp_enqueue_script('jquery');
 wp_localize_script('jquery', 'resume_ai_job', array(
     'ajax_url' => admin_url('admin-ajax.php'),
-    'nonce' => wp_create_nonce('resume_ai_job_nonce')
+    'nonce' => wp_create_nonce('resume_ai_job_nonce'),
+    'is_user_logged_in' => is_user_logged_in(),
+    'login_url' => get_permalink(get_option('resume_ai_job_login_page'))
 ));
 ?>
 
@@ -110,6 +112,14 @@ wp_localize_script('jquery', 'resume_ai_job', array(
     // Define functions in global scope
     function openApplicationModal(positionId) {
         console.log('Opening modal for position:', positionId);
+        
+        // Check if user is logged in
+        if (!resume_ai_job.is_user_logged_in) {
+            // Redirect to login page
+            window.location.href = resume_ai_job.login_url;
+            return;
+        }
+        
         jQuery('#position-id').val(positionId);
         loadUserResumes();
         jQuery('#application-modal').show();
@@ -279,7 +289,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
                     return;
                 }
 
-                const statusHtml = job.application_status 
+                const statusHtml = job.application_status && resume_ai_job.is_user_logged_in
                     ? `<div class="flex items-center gap-2 mb-3">
                         <span class="text-sm font-medium ${getStatusColor(job.application_status)}">
                             ${getStatusText(job.application_status)}

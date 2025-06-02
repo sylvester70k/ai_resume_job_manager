@@ -83,7 +83,7 @@ if (is_user_logged_in()) {
             <div class="text-sm text-center">
                 <p>
                     Already have an account? 
-                    <a href="<?php echo esc_url(home_url('/login')); ?>" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    <a href="<?php echo get_permalink(get_option('resume_ai_job_login_page')); ?>" class="font-medium text-indigo-600 hover:text-indigo-500">
                         Sign in here
                     </a>
                 </p>

@@ -113,6 +113,18 @@ class Admin {
             'default' => 0
         ));
 
+        register_setting('resume_ai_job_settings', 'resume_ai_job_login_page', array(
+            'type' => 'integer',
+            'sanitize_callback' => 'absint',
+            'default' => 0
+        ));
+        
+        register_setting('resume_ai_job_settings', 'resume_ai_job_register_page', array(
+            'type' => 'integer',
+            'sanitize_callback' => 'absint',
+            'default' => 0
+        ));
+
         add_settings_section(
             'resume_ai_job_api_settings',
             'AI API Settings',
@@ -147,6 +159,22 @@ class Admin {
             'resume_ai_job_versions_page',
             'Resume Versions Page',
             array($this, 'render_versions_page_field'),
+            'resume-ai-job-settings',
+            'resume_ai_job_page_settings'
+        );
+
+        add_settings_field(
+            'resume_ai_job_login_page',
+            'Login Page',
+            array($this, 'render_login_page_field'),
+            'resume-ai-job-settings',
+            'resume_ai_job_page_settings'
+        );
+
+        add_settings_field(
+            'resume_ai_job_register_page',
+            'Register Page',
+            array($this, 'render_register_page_field'),
             'resume-ai-job-settings',
             'resume_ai_job_page_settings'
         );
@@ -377,6 +405,36 @@ class Admin {
             'class' => 'regular-text'
         ));
         echo '<p class="description">Select the page where the resume versions will be displayed. This page should contain the [resume_versions] shortcode.</p>';
+    }
+
+    /**
+     * Render login page field.
+     */
+    public function render_login_page_field() {
+        $login_page = get_option('resume_ai_job_login_page');
+        wp_dropdown_pages(array(
+            'name' => 'resume_ai_job_login_page',
+            'selected' => $login_page,
+            'show_option_none' => 'Select a page',
+            'option_none_value' => '0',
+            'class' => 'regular-text'
+        ));
+        echo '<p class="description">Select the page where the login form will be displayed. This page should contain the [resume_ai_login] shortcode.</p>';
+    }
+
+    /**
+     * Render register page field.
+     */
+    public function render_register_page_field() {
+        $register_page = get_option('resume_ai_job_register_page');
+        wp_dropdown_pages(array(
+            'name' => 'resume_ai_job_register_page',
+            'selected' => $register_page,
+            'show_option_none' => 'Select a page',
+            'option_none_value' => '0',
+            'class' => 'regular-text'
+        ));
+        echo '<p class="description">Select the page where the register form will be displayed. This page should contain the [resume_ai_register] shortcode.</p>';
     }
 
     /**

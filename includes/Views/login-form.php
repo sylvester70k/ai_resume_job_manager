@@ -59,7 +59,7 @@ if (is_user_logged_in()) {
             <div class="text-sm text-center">
                 <p>
                     Don't have an account? 
-                    <a href="<?php echo esc_url(home_url('/register')); ?>" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    <a href="<?php echo get_permalink(get_option('resume_ai_job_register_page')); ?>" class="font-medium text-indigo-600 hover:text-indigo-500">
                         Register here
                     </a>
                 </p>

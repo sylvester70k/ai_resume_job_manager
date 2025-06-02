@@ -61,20 +61,29 @@ class Position {
         // If we have parameters, use prepare, otherwise use direct query
         if (!empty($params)) {
             $query = $wpdb->prepare(
-                "SELECT p.*, a.status as application_status 
+                "SELECT p.*, 
+                CASE 
+                    WHEN %d > 0 THEN a.status 
+                    ELSE NULL 
+                END as application_status 
                 FROM $table_name p 
                 LEFT JOIN $applications_table a ON p.id = a.position_id AND a.user_id = %d 
                 $where_clause 
                 ORDER BY p.created_at DESC",
-                array_merge([$user_id], $params)
+                array_merge([$user_id, $user_id], $params)
             );
         } else {
             $query = $wpdb->prepare(
-                "SELECT p.*, a.status as application_status 
+                "SELECT p.*, 
+                CASE 
+                    WHEN %d > 0 THEN a.status 
+                    ELSE NULL 
+                END as application_status 
                 FROM $table_name p 
                 LEFT JOIN $applications_table a ON p.id = a.position_id AND a.user_id = %d 
                 $where_clause 
                 ORDER BY p.created_at DESC",
+                $user_id,
                 $user_id
             );
         }
@@ -224,16 +233,14 @@ class Position {
      * Render job listings template
      */
     public function render_job_listings() {
-        if (!is_user_logged_in()) {
-            return '<p>Please <a href="' . wp_login_url(get_permalink()) . '">log in</a> to view job listings.</p>';
-        }
-
         // Enqueue necessary scripts
         wp_enqueue_script('jquery');
         wp_localize_script('jquery', 'resume_ai_job', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('resume_ai_job_nonce')
+            'nonce' => wp_create_nonce('resume_ai_job_nonce'),
+            'is_user_logged_in' => is_user_logged_in(),
+            'login_url' => wp_login_url(get_permalink())
         ));
 
         ob_start();
