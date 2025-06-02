@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 
 // Get all users with resume_user role
 $users = get_users(array('role__in' => array('resume_user')));
+global $wpdb;
+$users_table = $wpdb->prefix . 'resume_ai_job_user_data';
 
 // Get all resume posts
 $resume_posts = get_posts(array(
@@ -336,12 +338,10 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
                 </thead>
                 <tbody>
                     <?php foreach ($users as $user): 
-                        $resume_count = count(get_posts(array(
-                            'post_type' => 'resume_post',
-                            'author' => $user->ID,
-                            'posts_per_page' => -1
-                        )));
-                        $last_active = get_user_meta($user->ID, 'last_active', true);
+                        $user_data = $wpdb->get_row($wpdb->prepare(
+                            "SELECT * FROM $users_table WHERE user_id = %d",
+                            $user->ID
+                        ));
                     ?>
                         <tr>
                             <td>
@@ -360,18 +360,34 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
                             <td><?php echo esc_html($user->user_email); ?></td>
                             <td>
                                 <span class="resume-ai-job-badge resume-ai-job-badge-green">
-                                    <?php echo $resume_count; ?> resume<?php echo $resume_count !== 1 ? 's' : ''; ?>
+                                    <?php
+                                        if ($user_data) {
+                                            $resume_count = 0;
+                                            if ($user_data->original_resume_id) $resume_count++;
+                                            if ($user_data->ats_resume_id) $resume_count++;
+                                            if ($user_data->human_resume_id) $resume_count++;
+                                            echo $resume_count;
+                                        } else {
+                                            echo '0';
+                                        }
+                                    ?>
                                 </span>
                             </td>
                             <td>
-                                <?php echo $last_active ? date('M j, Y', strtotime($last_active)) : 'Never'; ?>
+                                <?php 
+                                    if ($user_data && $user_data->updated_at) {
+                                        echo date('M j, Y', strtotime($user_data->updated_at));
+                                    } else {
+                                        echo 'Never';
+                                    }
+                                ?>
                             </td>
                             <td>
-                                <a href="#" onclick="viewUserResumes(<?php echo esc_js($user->ID); ?>)" 
+                                <a href="#" onclick="viewUserResumes(<?php echo esc_js($user->ID); ?>)"
                                    class="resume-ai-job-action-link">View Resumes</a>
-                                <a href="#" onclick="editUser(<?php echo esc_js($user->ID); ?>)" 
+                                <a href="#" onclick="editUser(<?php echo esc_js($user->ID); ?>)"
                                    class="resume-ai-job-action-link">Edit</a>
-                                <a href="#" onclick="deleteUser(<?php echo esc_js($user->ID); ?>)" 
+                                <a href="#" onclick="deleteUser(<?php echo esc_js($user->ID); ?>)"
                                    class="resume-ai-job-action-link delete">Delete</a>
                             </td>
                         </tr>
@@ -380,42 +396,64 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
             </table>
         </div>
 
-    <?php else: ?>
+    <?php 
+        else: 
+            $user_id = isset($_GET['user']) ? intval($_GET['user']) : 0;
+            $user_data = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $users_table WHERE user_id = %d",
+                $user_id
+            ));
+            $user = get_user_by('id', $user_id);
+    ?>
         <!-- Resumes Tab -->
+        <div class="resume-ai-job-header">
+            <h2>Resumes for <?php echo esc_html($user->display_name); ?></h2>
+        </div>
         <div class="resume-ai-job-grid">
-            <?php foreach ($resume_posts as $post): 
-                $resume_file_id = get_post_meta($post->ID, '_resume_file_id', true);
-                $resume_file = get_attached_file($resume_file_id);
-                $resume_type = get_post_meta($resume_file_id, '_resume_type', true);
-                $user = get_user_by('id', $post->post_author);
+            <?php
+            $resume_types = array(
+                'original' => array(
+                    'title' => 'Original Resume',
+                    'id' => $user_data ? $user_data->original_resume_id : null
+                ),
+                'ats' => array(
+                    'title' => 'ATS Resume',
+                    'id' => $user_data ? $user_data->ats_resume_id : null
+                ),
+                'human' => array(
+                    'title' => 'Human Resume',
+                    'id' => $user_data ? $user_data->human_resume_id : null
+                )
+            );
+
+            foreach ($resume_types as $type => $resume_data):
+                if ($resume_data['id']):
+                    $resume_file = get_attached_file($resume_data['id']);
+                    $resume_post = get_post($resume_data['id']);
             ?>
                 <div class="resume-ai-job-card">
                     <div class="resume-ai-job-card-header">
                         <h3 class="resume-ai-job-card-title">
-                            <?php echo esc_html($post->post_title); ?>
+                            <?php echo esc_html($resume_data['title']); ?>
                         </h3>
-                        <span class="resume-ai-job-card-badge <?php echo $resume_type; ?>">
-                            <?php echo esc_html(ucfirst(str_replace('_', ' ', $resume_type))); ?>
+                        <span class="resume-ai-job-card-badge <?php echo $type; ?>">
+                            <?php echo esc_html(ucfirst($type)); ?>
                         </span>
                     </div>
 
                     <div class="resume-ai-job-card-info">
                         <p>
-                            <strong>Author:</strong>
-                            <?php echo esc_html($user->display_name); ?>
-                        </p>
-                        <p>
                             <strong>Date:</strong>
-                            <?php echo get_the_date('F j, Y', $post->ID); ?>
+                            <?php echo get_the_date('F j, Y', $resume_post->ID); ?>
                         </p>
                         <p>
                             <strong>Status:</strong>
-                            <?php echo esc_html($post->post_status); ?>
+                            <?php echo esc_html($resume_post->post_status); ?>
                         </p>
                     </div>
 
                     <div class="resume-ai-job-card-actions">
-                        <a href="<?php echo wp_get_attachment_url($resume_file_id); ?>" 
+                        <a href="<?php echo wp_get_attachment_url($resume_data['id']); ?>" 
                            target="_blank"
                            class="button">
                             <span class="dashicons dashicons-visibility" style="margin-top: 3px;"></span>
@@ -424,13 +462,16 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
                         
                         <button type="button"
                                 class="button button-primary"
-                                onclick="downloadResume(<?php echo esc_js($resume_file_id); ?>)">
+                                onclick="downloadResume(<?php echo esc_js($resume_data['id']); ?>)">
                             <span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
                             Download
                         </button>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php 
+                endif;
+            endforeach; 
+            ?>
         </div>
     <?php endif; ?>
 </div>
