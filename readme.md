@@ -71,7 +71,7 @@ A WordPress plugin that adds AI-powered resume management features to your websi
    [resume_ai_job_listings]
    ```
 
-4. Create pages for login and registration:
+4. Create pages and add the shortcodes for login and registration:
    ```
    [resume_ai_login]
    [resume_ai_register]
@@ -95,6 +95,11 @@ The plugin creates a custom role 'resume_user' with the following capabilities:
    - Main settings
    - Template options
    - Cache settings
+   - Admin Panel Setup:
+     * Resume Upload Page
+     * Resume Versions Page
+     * Login Page
+     * Register Page
 
 ## Usage
 
