@@ -456,7 +456,7 @@ jQuery(document).ready(function($) {
                         <div class="form-field">
                             <h4>Cover Letter</h4>
                             <div class="cover-letter-content">
-                                ${wp_kses_post($application.cover_letter)}
+                                ${application.cover_letter}
                             </div>
                         </div>
                         <div class="form-field">
