@@ -228,6 +228,30 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
     color: #1d2327;
 }
 
+.resume-ai-job-preview {
+    margin: 15px 0;
+    border: 1px solid #e2e4e7;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f6f7f7;
+    position: relative;
+    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+}
+
+.resume-ai-job-preview img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.resume-ai-job-preview:hover img {
+    transform: scale(1.02);
+}
+
 .resume-ai-job-card-actions {
     display: flex;
     gap: 10px;
@@ -430,6 +454,8 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
                 if ($resume_data['id']):
                     $resume_file = get_attached_file($resume_data['id']);
                     $resume_post = get_post($resume_data['id']);
+                    $resume_url = wp_get_attachment_url($resume_data['id']);
+                    $preview_url = str_replace('.pdf', '-pdf.jpg', $resume_url);
             ?>
                 <div class="resume-ai-job-card">
                     <div class="resume-ai-job-card-header">
@@ -452,6 +478,10 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
                         </p>
                     </div>
 
+                    <div class="resume-ai-job-preview">
+                        <img src="<?php echo $preview_url; ?>" alt="Resume Preview">
+                    </div>
+
                     <div class="resume-ai-job-card-actions">
                         <a href="<?php echo wp_get_attachment_url($resume_data['id']); ?>" 
                            target="_blank"
@@ -460,12 +490,12 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'users'
                             View
                         </a>
                         
-                        <button type="button"
+                        <!-- <button type="button"
                                 class="button button-primary"
                                 onclick="downloadResume(<?php echo esc_js($resume_data['id']); ?>)">
                             <span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
                             Download
-                        </button>
+                        </button> -->
                     </div>
                 </div>
             <?php 
@@ -618,35 +648,35 @@ function deleteUser(userId) {
 }
 
 // Resume Management Functions
-function downloadResume(fileId) {
-    const downloadUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
+// function downloadResume(fileId) {
+//     const downloadUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
     
-    jQuery.ajax({
-        url: downloadUrl,
-        type: 'POST',
-        data: {
-            action: 'download_resume',
-            file_id: fileId,
-            nonce: '<?php echo wp_create_nonce('download_resume_nonce'); ?>'
-        },
-        success: function(response) {
-            if (response.success && response.data.url) {
-                // Create a temporary link and trigger download
-                const link = document.createElement('a');
-                link.href = response.data.url;
-                link.download = ''; // Let the browser determine the filename
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } else {
-                alert('Failed to download resume: ' + (response.data ? response.data.message : 'Unknown error'));
-            }
-        },
-        error: function() {
-            alert('An error occurred while downloading the resume');
-        }
-    });
-}
+//     jQuery.ajax({
+//         url: downloadUrl,
+//         type: 'POST',
+//         data: {
+//             action: 'download_resume',
+//             file_id: fileId,
+//             nonce: '<?php echo wp_create_nonce('download_resume_nonce'); ?>'
+//         },
+//         success: function(response) {
+//             if (response.success && response.data.url) {
+//                 // Create a temporary link and trigger download
+//                 const link = document.createElement('a');
+//                 link.href = response.data.url;
+//                 link.download = ''; // Let the browser determine the filename
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+//             } else {
+//                 alert('Failed to download resume: ' + (response.data ? response.data.message : 'Unknown error'));
+//             }
+//         },
+//         error: function() {
+//             alert('An error occurred while downloading the resume');
+//         }
+//     });
+// }
 
 // Handle Add User Form Submission
 jQuery('#add-user-form').on('submit', function(e) {
