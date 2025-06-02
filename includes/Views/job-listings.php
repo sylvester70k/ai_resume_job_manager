@@ -54,13 +54,13 @@ wp_localize_script('jquery', 'resume_ai_job', array(
     <!-- Application Modal -->
     <div id="application-modal"
         class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
-        <div class="relative top-16 mx-auto p-4 border w-full shadow-lg rounded-md bg-white max-w-3xl"
+        <div class="relative top-16 mx-auto p-4 border w-full shadow-lg rounded-md bg-white max-w-3xl flex flex-col items-center h-[90vh]"
             style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-lg font-semibold text-gray-800">Apply for Position</h2>
                 <span class="close text-gray-500 hover:text-gray-700 cursor-pointer text-xl">&times;</span>
             </div>
-            <form id="application-form" class="space-y-3">
+            <form id="application-form" class="space-y-3 flex-1 overflow-y-auto">
                 <input type="hidden" id="position-id" name="position_id">
 
                 <div class="space-y-1">
