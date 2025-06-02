@@ -54,7 +54,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
     <!-- Application Modal -->
     <div id="application-modal"
         class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
-        <div class="relative top-16 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white max-w-2xl"
+        <div class="relative top-16 mx-auto p-4 border w-full shadow-lg rounded-md bg-white max-w-3xl"
             style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-lg font-semibold text-gray-800">Apply for Position</h2>
@@ -69,13 +69,13 @@ wp_localize_script('jquery', 'resume_ai_job', array(
                     wp_editor('', 'cover-letter', array(
                         'media_buttons' => false,
                         'textarea_name' => 'cover_letter',
-                        'editor_height' => 300,
+                        'editor_height' => 250,
                         'teeny' => true,
                         'quicktags' => false,
                         'tinymce' => array(
-                            'height' => 300,
+                            'height' => 250,
                             'menubar' => false,
-                            'plugins' => 'lists link wordcount',
+                            'plugins' => 'lists link',
                             'toolbar1' => 'formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link | removeformat',
                             'content_style' => 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
                         ),
