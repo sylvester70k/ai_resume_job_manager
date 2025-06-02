@@ -10,6 +10,7 @@ class AjaxHandler {
         add_action('wp_ajax_update_user', array($this, 'update_user'));
         add_action('wp_ajax_delete_user', array($this, 'delete_user'));
         add_action('wp_ajax_add_user', array($this, 'add_user'));
+        add_action('wp_ajax_download_resume', array($this, 'download_resume'));
     }
 
     /**
@@ -142,5 +143,37 @@ class AjaxHandler {
         } else {
             wp_send_json_error($user_id->get_error_message());
         }
+    }
+
+    /**
+     * Handle resume download.
+     */
+    public function download_resume() {
+        check_ajax_referer('download_resume_nonce', 'nonce');
+
+        $file_id = intval($_POST['file_id']);
+        
+        // Verify the file exists and user has permission
+        $file = get_post($file_id);
+        if (!$file || $file->post_type !== 'attachment') {
+            wp_send_json_error(array('message' => 'Invalid file'));
+            return;
+        }
+
+        // Get the file path
+        $file_path = get_attached_file($file_id);
+        if (!$file_path || !file_exists($file_path)) {
+            wp_send_json_error(array('message' => 'File not found'));
+            return;
+        }
+
+        // Get the file URL
+        $file_url = wp_get_attachment_url($file_id);
+        if (!$file_url) {
+            wp_send_json_error(array('message' => 'Could not generate download URL'));
+            return;
+        }
+
+        wp_send_json_success(array('url' => $file_url));
     }
 } 

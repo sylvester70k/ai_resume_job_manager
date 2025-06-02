@@ -630,10 +630,16 @@ function downloadResume(fileId) {
             nonce: '<?php echo wp_create_nonce('download_resume_nonce'); ?>'
         },
         success: function(response) {
-            if (response.success) {
-                window.location.href = response.data.url;
+            if (response.success && response.data.url) {
+                // Create a temporary link and trigger download
+                const link = document.createElement('a');
+                link.href = response.data.url;
+                link.download = ''; // Let the browser determine the filename
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             } else {
-                alert('Failed to download resume');
+                alert('Failed to download resume: ' + (response.data ? response.data.message : 'Unknown error'));
             }
         },
         error: function() {
