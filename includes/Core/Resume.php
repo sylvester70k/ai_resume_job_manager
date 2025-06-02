@@ -41,6 +41,9 @@ class Resume
 
     public function init()
     {
+        // Initialize TCPDF configuration
+        Config::init();
+
         // Add shortcode for resume upload form
         add_shortcode('resume_upload_form', array($this, 'render_resume_upload_form'));
         add_shortcode('resume_versions', array($this, 'render_resume_versions'));
