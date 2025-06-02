@@ -123,7 +123,7 @@ class Position {
 
         // Get and validate required fields
         $position_id = isset($_POST['position_id']) ? intval($_POST['position_id']) : 0;
-        $cover_letter = isset($_POST['cover_letter']) ? sanitize_textarea_field($_POST['cover_letter']) : '';
+        $cover_letter = isset($_POST['cover_letter']) ? wp_kses_post($_POST['cover_letter']) : '';
         $resume_id = isset($_POST['resume_id']) ? intval($_POST['resume_id']) : 0;
 
         if (!$position_id || !$cover_letter || !$resume_id) {

@@ -300,6 +300,30 @@ $applications = $wpdb->get_results("SELECT a.*, p.title as position_title, u.dis
 #application-details a:hover {
     color: #135e96;
 }
+
+.cover-letter-content {
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    line-height: 1.6;
+}
+
+.cover-letter-content p {
+    margin: 0 0 1em 0;
+}
+
+.cover-letter-content ul, 
+.cover-letter-content ol {
+    margin: 0 0 1em 1.5em;
+}
+
+.cover-letter-content li {
+    margin: 0.5em 0;
+}
 </style>
 
 <script>
@@ -431,7 +455,9 @@ jQuery(document).ready(function($) {
                         </div>
                         <div class="form-field">
                             <h4>Cover Letter</h4>
-                            <p>${application.cover_letter}</p>
+                            <div class="cover-letter-content">
+                                ${wp_kses_post($application.cover_letter)}
+                            </div>
                         </div>
                         <div class="form-field">
                             <h4>Resume</h4>
