@@ -660,7 +660,7 @@ class Resume
                                 }
 
                                 $success = true;
-                                error_log("Resume analyze successful for type {$type}: ");
+                                error_log("Resume analyze successful for type {$type}: " . print_r($versions[$type], true));
                             } else {
                                 error_log('AI Response Error: ' . print_r($body, true));
                                 throw new \Exception('Invalid response structure from AI service');
@@ -760,7 +760,7 @@ class Resume
                 $file_path = $upload_dir['path'] . '/resume_' . $type . '_' . $user_id . '_' . $timestamp . '.' . $file_extension;
 
                 try {
-                    if ($file_extension === 'pdf') {
+                    if ($file_extension !== 'html') {
                         $pdf = $this->template_manager->convert_to_pdf($document, $this->template_manager->get_template('html', 'default'));
                         if (!$pdf || !method_exists($pdf, 'Output')) {
                             throw new \Exception('Failed to convert HTML to PDF');

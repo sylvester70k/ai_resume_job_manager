@@ -9,7 +9,7 @@ class TemplateManager {
     public function __construct() {
         // Use plugin's templates directory with absolute path
         $this->template_dir = RESUME_AI_JOB_PLUGIN_DIR . 'templates/';
-        error_log('Template directory: ' . $this->template_dir);
+        // error_log('Template directory: ' . $this->template_dir);
         
         // Create cache directory in WordPress uploads
         $upload_dir = wp_upload_dir();
@@ -36,11 +36,9 @@ class TemplateManager {
     private function load_templates() {
         // Load HTML templates
         $html_dir = $this->template_dir . 'html/';
-        error_log('Loading templates from: ' . $html_dir);
         
         if (is_dir($html_dir)) {
             $this->templates['html'] = $this->scan_templates($html_dir);
-            error_log('Loaded templates: ' . print_r($this->templates['html'], true));
         } else {
             error_log('HTML template directory not found: ' . $html_dir);
         }
@@ -49,7 +47,6 @@ class TemplateManager {
     private function scan_templates($dir) {
         $templates = [];
         $files = glob($dir . '*.{html,twig}', GLOB_BRACE);
-        error_log('Found template files: ' . print_r($files, true));
         
         foreach ($files as $file) {
             $filename = basename($file);
@@ -88,9 +85,6 @@ class TemplateManager {
     }
 
     public function get_template($type, $name) {
-        error_log('Getting template: ' . $type . '/' . $name);
-        error_log('Available templates: ' . print_r($this->templates, true));
-        
         if (isset($this->templates[$type][$name])) {
             return $this->templates[$type][$name];
         }
@@ -100,14 +94,12 @@ class TemplateManager {
     public function apply_template($type, $name, $content) {
         $template = $this->get_template($type, $name);
         if (!$template) {
-            error_log('Template not found: ' . $type . '/' . $name);
             return new \WP_Error('template_not_found', 'Template not found: ' . $type . '/' . $name);
         }
 
         try {
             // Get the template file path relative to the template directory
             $template_path = str_replace($this->template_dir, '', $template['template']);
-            error_log('Rendering template: ' . $template_path);
             
             // Render the template with Twig
             $html = $this->twig->render($template_path, [
@@ -128,8 +120,6 @@ class TemplateManager {
             }
         } catch (\Exception $e) {
             error_log('Template error: ' . $e->getMessage());
-            error_log('Template path: ' . $template_path);
-            error_log('Template content: ' . print_r($content, true));
             return new \WP_Error('template_error', $e->getMessage());
         }
     }

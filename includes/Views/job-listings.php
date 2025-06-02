@@ -63,8 +63,22 @@ wp_localize_script('jquery', 'resume_ai_job', array(
 
                 <div class="space-y-1">
                     <label for="cover-letter" class="block text-xs font-medium text-gray-700">Cover Letter</label>
-                    <textarea id="cover-letter" name="cover_letter" rows="4" required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    <?php 
+                    wp_editor('', 'cover-letter', array(
+                        'media_buttons' => false,
+                        'textarea_name' => 'cover_letter',
+                        'editor_height' => 300,
+                        'teeny' => true,
+                        'quicktags' => false,
+                        'tinymce' => array(
+                            'height' => 300,
+                            'menubar' => false,
+                            'plugins' => 'lists link wordcount',
+                            'toolbar1' => 'formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link | removeformat',
+                            'content_style' => 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+                        ),
+                    )); 
+                    ?>
                 </div>
 
                 <div class="space-y-1">
@@ -99,6 +113,10 @@ wp_localize_script('jquery', 'resume_ai_job', array(
         jQuery('#position-id').val(positionId);
         loadUserResumes();
         jQuery('#application-modal').show();
+    }
+
+    function closeApplicationModal() {
+        jQuery('#application-modal').hide();
     }
 
     function loadUserResumes() {
@@ -180,13 +198,13 @@ wp_localize_script('jquery', 'resume_ai_job', array(
 
         // Close modal when clicking the close button
         $('.close').on('click', function () {
-            $('#application-modal').hide();
+            closeApplicationModal();
         });
 
         // Close modal when clicking outside
         $(window).on('click', function (e) {
             if ($(e.target).is('#application-modal')) {
-                $('#application-modal').hide();
+                closeApplicationModal();
             }
         });
 
@@ -410,7 +428,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
             const formData = {
                 action: 'apply_position',
                 position_id: $('#position-id').val(),
-                cover_letter: $('#cover-letter').val(),
+                cover_letter: tinyMCE.get('cover-letter').getContent(),
                 resume_id: $('#resume-select').val(),
                 nonce: resume_ai_job.nonce
             };
@@ -432,7 +450,7 @@ wp_localize_script('jquery', 'resume_ai_job', array(
                     console.log('Application response:', response);
                     if (response.success) {
                         alert('Application submitted successfully!');
-                        $('#application-modal').hide();
+                        closeApplicationModal();
                         $('#application-form')[0].reset();
                         document.location.reload();
                     } else {
